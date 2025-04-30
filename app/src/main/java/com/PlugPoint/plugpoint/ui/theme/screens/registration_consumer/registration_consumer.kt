@@ -131,7 +131,7 @@ fun RegistrationConsumerScreen() {
             OutlinedTextField(
                 value = idNumber,
                 onValueChange = { idNumber = it },
-                label = { Text("ID Number") },
+                label = { Text("ID Number/Passport No") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
