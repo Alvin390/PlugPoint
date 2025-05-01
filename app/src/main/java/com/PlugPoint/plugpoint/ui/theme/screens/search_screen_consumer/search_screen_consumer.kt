@@ -1,4 +1,5 @@
-package com.PlugPoint.plugpoint.ui.theme.screens.search_screen
+package com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer
+
 
 
 import androidx.compose.foundation.background
@@ -17,12 +18,13 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 
 @Composable
-fun Search_supply_screen() {
+fun SearchConsumerScreen() {
     Scaffold(
         topBar = { SearchBarUI() },
-        bottomBar = { SupplierBottomNavBarSearch() }
+        bottomBar = { ConsumerBottomNavBarSearch() }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -57,14 +59,13 @@ fun SearchBarUI() {
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedBorderColor = Color.LightGray,
-                focusedBorderColor = Color(0xFFFF8C00)
+                focusedBorderColor = Color(0xFF1E90FF) // Blue color for consumer
             )
         )
     }
 }
-
 @Composable
-fun SupplierBottomNavBarSearch() {
+fun ConsumerBottomNavBarSearch() {
     val items = listOf("My Profile", "Search", "Notifications", "Chat")
     val icons = listOf(
         Icons.Default.Person,
@@ -75,7 +76,7 @@ fun SupplierBottomNavBarSearch() {
     var selectedIndex by remember { mutableStateOf(1) }
 
     NavigationBar(
-        containerColor = Color(0xFFFFDEAD),
+        containerColor = Color(0xFFADD8E6), // lightBlue
         contentColor = Color.Black,
         tonalElevation = 8.dp
     ) {
@@ -91,9 +92,9 @@ fun SupplierBottomNavBarSearch() {
                 selected = selectedIndex == index,
                 onClick = { selectedIndex = index },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFFFF8C00),
-                    selectedTextColor = Color(0xFFFF8C00),
-                    indicatorColor = Color(0xFFFFEFD5)
+                    selectedIconColor = Color(0xFF1E90FF),
+                    selectedTextColor = Color(0xFF1E90FF),
+                    indicatorColor = Color(0xFF87CEFA)
                 )
             )
         }
@@ -102,6 +103,6 @@ fun SupplierBottomNavBarSearch() {
 
 @Preview
 @Composable
-private fun search_supply_preview() {
-    Search_supply_screen()
+private fun search_consumer_preview() {
+    SearchConsumerScreen()
 }

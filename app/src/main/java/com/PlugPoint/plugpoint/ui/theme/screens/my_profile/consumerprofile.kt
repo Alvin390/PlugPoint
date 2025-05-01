@@ -62,9 +62,9 @@ fun ConsumerProfileScreen() {
             ) {
                 items(
                     listOf(
-                        "Applications Made" to R.drawable.applications,
+                        "Applications Made" to R.drawable.applicationsmadeconsumer,
                         "Accepted Applications" to R.drawable.acceptedapplications,
-                        "All Applications" to R.drawable.applications,
+                        "Saved Suppliers" to R.drawable.savedsuppliersconsumer,
                         "Edit Profile" to R.drawable.editprofileconsumer,
                         "Settings" to R.drawable.settingsconsumer,
                         "Logout" to R.drawable.logoutsupply
