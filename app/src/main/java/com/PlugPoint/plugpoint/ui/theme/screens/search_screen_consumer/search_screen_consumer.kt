@@ -18,10 +18,12 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 
 @Composable
-fun SearchConsumerScreen() {
+fun SearchConsumerScreen(navController: NavController) {
     Scaffold(
         topBar = { SearchBarUI() },
         bottomBar = { ConsumerBottomNavBarSearch() }
@@ -104,5 +106,5 @@ fun ConsumerBottomNavBarSearch() {
 @Preview
 @Composable
 private fun search_consumer_preview() {
-    SearchConsumerScreen()
+    SearchConsumerScreen(rememberNavController())
 }

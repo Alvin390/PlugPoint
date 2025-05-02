@@ -62,7 +62,9 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import coil3.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.ui.theme.amberBlaze
 import com.PlugPoint.plugpoint.ui.theme.charcoalDust
 import com.PlugPoint.plugpoint.ui.theme.dimGray
@@ -75,7 +77,7 @@ import kotlin.toString
 
 
 @Composable
-fun SupplierCommodityScreen() {
+fun SupplierCommodityScreen(navController: NavController) {
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     val commodities = remember { mutableStateListOf<Commodity>() }
@@ -477,5 +479,5 @@ data class Commodity(
 @Preview
 @Composable
 private fun commodity_screen_prev() {
-    SupplierCommodityScreen()
+    SupplierCommodityScreen(rememberNavController())
 }

@@ -2,6 +2,7 @@ package com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile
 
 
 
+
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -30,14 +31,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.R
+import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
+import com.PlugPoint.plugpoint.navigation.ROUTE_NOTIFICATION
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 
 
 @Composable
-fun ConsumerProfileScreen() {
+fun ConsumerProfileScreen(navController: NavController) {
     Scaffold(
         topBar = { ConsumerTopBar() },
-        bottomBar = { ConsumerBottomNavBar() }
+        bottomBar = { ConsumerBottomNavBar(navController) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -48,29 +57,27 @@ fun ConsumerProfileScreen() {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Profile Details
             ProfileDetails()
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Clickable Feature Cards in a Grid
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3), // 3 cards per row
+                columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(
                     listOf(
-                        "Applications Made" to R.drawable.applicationsmadeconsumer,
-                        "Accepted Applications" to R.drawable.acceptedapplications,
-                        "Saved Suppliers" to R.drawable.savedsuppliersconsumer,
-                        "Edit Profile" to R.drawable.editprofileconsumer,
-                        "Settings" to R.drawable.settingsconsumer,
-                        "Logout" to R.drawable.logoutsupply
+                        Triple("Applications Made", R.drawable.applicationsmadeconsumer, ROUTE_COMMODITY_LIST),
+                        Triple("Accepted Applications", R.drawable.acceptedapplications, ROUTE_NOTIFICATION),
+                        Triple("Saved Suppliers", R.drawable.savedsuppliersconsumer, ROUTE_SEARCH_CONSUMER),
+                        Triple("Edit Profile", R.drawable.editprofileconsumer, ROUTE_PROFILE_CONSUMER),
+                        Triple("Settings", R.drawable.settingsconsumer, ROUTE_SEARCH_SUPPLIER),
+                        Triple("Logout", R.drawable.logoutsupply, ROUTE_PROFILE_SUPPLIER)
                     )
-                ) { (title, imageRes) ->
-                    FeatureCard(title, imageRes)
+                ) { (title, imageRes, route) ->
+                    FeatureCard(title, imageRes, navController, route)
                 }
             }
         }
@@ -127,13 +134,19 @@ fun ProfileDetails() {
 }
 
 @Composable
-fun ConsumerBottomNavBar() {
+fun ConsumerBottomNavBar(navController: NavController) {
     val items = listOf("My Profile", "Search", "Notifications", "Chat")
     val icons = listOf(
         Icons.Default.Person,
         Icons.Default.Search,
         Icons.Default.Notifications,
         Icons.Default.MailOutline
+    )
+    val routes = listOf(
+        ROUTE_PROFILE_CONSUMER, // Replace with the actual route for "My Profile"
+        ROUTE_SEARCH_CONSUMER,  // Replace with the actual route for "Search"
+        ROUTE_NOTIFICATION,     // Replace with the actual route for "Notifications"
+//        ROUTE_CHAT            // Replace with the actual route for "Chat"
     )
     var selectedIndex by remember { mutableStateOf(0) }
 
@@ -164,11 +177,11 @@ fun ConsumerBottomNavBar() {
 }
 
 @Composable
-fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
+fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavController, route: String) {
     Card(
         modifier = Modifier
             .size(150.dp)
-            .clickable { /* TODO: Handle click */ },
+            .clickable { navController.navigate(route) },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFE6F2FF))
@@ -193,5 +206,5 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
 @Preview
 @Composable
 private fun consumer_profile_preview() {
-    ConsumerProfileScreen()
+    ConsumerProfileScreen(rememberNavController())
 }

@@ -22,6 +22,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.navigation.ROUTE_REGISTRATION_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_REGISTRATION_SUPPLIER
 import com.PlugPoint.plugpoint.ui.theme.blue
 import com.PlugPoint.plugpoint.ui.theme.neworange
 import com.PlugPoint.plugpoint.ui.theme.neworange1
@@ -29,7 +33,7 @@ import kotlin.math.sin
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun RoleSelectionScreen() {
+fun RoleSelectionScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -57,7 +61,7 @@ fun RoleSelectionScreen() {
             GradientButton(
                 text = "I am a Consumer",
                 gradient = Brush.horizontalGradient(listOf(blue, blue.copy(alpha = 0.7f))),
-                onClick = { /* Navigate to Consumer */ }
+                onClick = { navController.navigate(ROUTE_REGISTRATION_CONSUMER) }
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -66,7 +70,7 @@ fun RoleSelectionScreen() {
             GradientButton(
                 text = "I am a Supplier",
                 gradient = Brush.horizontalGradient(listOf(neworange1, neworange.copy(alpha = 0.7f))),
-                onClick = { /* Navigate to Supplier */ }
+                onClick =  { navController.navigate(ROUTE_REGISTRATION_SUPPLIER) }
             )
         }
     }
@@ -137,5 +141,5 @@ fun GradientButton(
 @Preview
 @Composable
 private fun role_selection_preview() {
-    RoleSelectionScreen()
+    RoleSelectionScreen(rememberNavController())
 }

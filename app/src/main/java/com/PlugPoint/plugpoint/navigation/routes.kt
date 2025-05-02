@@ -1,0 +1,16 @@
+package com.PlugPoint.plugpoint.navigation
+
+const val ROUTE_COMMODITY_LIST = "commodity_list"
+//const val ROUTE_EDIT_PROFILE_SUPPLIER = "edit_profile_supplier"
+//const val ROUTE_EDIT_PROFILE_CONSUMER = "edit_profile_consumer"
+const val ROUTE_LOGIN = "login"
+const val ROUTE_REGISTRATION_SUPPLIER = "registration_supplier"
+const val ROUTE_REGISTRATION_CONSUMER = "registration_consumer"
+const val ROUTE_PROFILE_SUPPLIER = "profile_supplier"
+const val ROUTE_PROFILE_CONSUMER = "profile_consumer"
+const val ROUTE_NOTIFICATION = "notification"
+const val ROUTE_ROLES = "roles"
+const val ROUTE_SEARCH_SUPPLIER = "search_supplier"
+const val ROUTE_SEARCH_CONSUMER = "search_consumer"
+const val ROUTE_SETTINGS = "settings"
+const val ROUTE_SPLASH = "splash"

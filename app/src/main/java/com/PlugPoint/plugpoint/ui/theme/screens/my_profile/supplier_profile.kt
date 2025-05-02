@@ -50,12 +50,18 @@ import com.PlugPoint.plugpoint.R
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
+import com.PlugPoint.plugpoint.navigation.ROUTE_NOTIFICATION
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 
 @Composable
-fun SupplierProfileScreen() {
+fun SupplierProfileScreen(navController: NavController) {
     Scaffold(
         topBar = { SupplierTopBar() },
-        bottomBar = { SupplierBottomNavBar() }
+        bottomBar = { SupplierBottomNavBar(navController) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -89,6 +95,15 @@ fun SupplierProfileScreen() {
                     )
                 ) { (title, imageRes) ->
                     FeatureCard(title, imageRes)
+                    when (title) {
+                        "Commodities" -> navController.navigate(ROUTE_COMMODITY_LIST)
+                        "Accepted Applications" -> { /* Add navigation or logic here */ }
+                        "All Applications" -> { /* Add navigation or logic here */ }
+                        "Edit Profile" -> { /* Add navigation or logic here */ }
+                        "Settings" -> { /* Add navigation or logic here */ }
+                        "Logout" -> { /* Add logout logic here */ }
+                    }
+
                 }
             }
         }
@@ -146,7 +161,7 @@ fun ProfileDetails() {
 }
 
 @Composable
-fun SupplierBottomNavBar() {
+fun SupplierBottomNavBar(navController: NavController) {
     val items = listOf("My Profile", "Search", "Notifications", "Chat")
     val icons = listOf(
         Icons.Default.Person,
@@ -154,10 +169,16 @@ fun SupplierBottomNavBar() {
         Icons.Default.Notifications,
         Icons.Default.MailOutline
     )
+    val routes = listOf(
+        ROUTE_PROFILE_SUPPLIER, // Replace with the actual route for "My Profile"
+        ROUTE_SEARCH_SUPPLIER,  // Replace with the actual route for "Search"
+        ROUTE_NOTIFICATION,     // Replace with the actual route for "Notifications"
+//        ROUTE_CHAT            // Replace with the actual route for "Chat"
+    )
     var selectedIndex by remember { mutableStateOf(0) }
 
     NavigationBar(
-        containerColor = Color(0xFFFFDEAD), // NavajoWhite
+        containerColor = Color(0xFFFFDEAD),
         contentColor = Color.Black,
         tonalElevation = 8.dp
     ) {
@@ -171,7 +192,14 @@ fun SupplierBottomNavBar() {
                 },
                 label = { Text(label, fontSize = 12.sp) },
                 selected = selectedIndex == index,
-                onClick = { selectedIndex = index },
+                onClick = {
+                    selectedIndex = index
+                    navController.navigate(routes[index]) {
+                        popUpTo(navController.graph.startDestinationId) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFFFF8C00),
                     selectedTextColor = Color(0xFFFF8C00),
@@ -187,7 +215,7 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
     Card(
         modifier = Modifier
             .size(150.dp) // Increased size
-            .clickable { /* TODO: Handle click */ },
+            .clickable {  },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF5EE)) // Seashell-like
@@ -212,5 +240,5 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
 @Preview
 @Composable
 private fun supplier_profile_preview() {
-    SupplierProfileScreen()
+    SupplierProfileScreen(rememberNavController())
 }

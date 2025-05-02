@@ -27,13 +27,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.navigation.ROUTE_ROLES
 import com.PlugPoint.plugpoint.ui.theme.blue
 import com.PlugPoint.plugpoint.ui.theme.neworange
 import com.PlugPoint.plugpoint.ui.theme.neworange1
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun LoginScreen() {
+fun LoginScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -56,7 +59,7 @@ fun LoginScreen() {
                 modifier = Modifier.padding(bottom = 36.dp)
             )
 
-            LoginForm()
+            LoginForm(navController)
         }
     }
 }
@@ -92,7 +95,7 @@ fun AnimatedSubtleBackground() {
 }
 
 @Composable
-fun LoginForm() {
+fun LoginForm(navController: NavController) {
     var emailOrPhone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -141,8 +144,8 @@ fun LoginForm() {
                 color = blue,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable {
-                    // TODO: Handle navigation to registration screen
+                modifier = Modifier.clickable { navController.navigate(ROUTE_ROLES)
+
                 }
             )
         }
@@ -227,5 +230,5 @@ fun GradientButton(
 @Preview
 @Composable
 private fun login_screen_prev() {
-    LoginScreen()
+    LoginScreen(rememberNavController())
 }

@@ -1,4 +1,4 @@
-package com.PlugPoint.plugpoint.ui.theme.screens.search_screen
+package com.PlugPoint.plugpoint.ui.theme.screens.search_screen_supplier
 
 
 import androidx.compose.foundation.background
@@ -17,9 +17,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun Search_supply_screen() {
+fun Search_supply_screen(navController: NavController) {
     Scaffold(
         topBar = { SearchBarUI() },
         bottomBar = { SupplierBottomNavBarSearch() }
@@ -103,5 +105,5 @@ fun SupplierBottomNavBarSearch() {
 @Preview
 @Composable
 private fun search_supply_preview() {
-    Search_supply_screen()
+    Search_supply_screen(rememberNavController())
 }
