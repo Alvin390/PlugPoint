@@ -1,6 +1,6 @@
 package com.PlugPoint.plugpoint.models
 
-class UserSupplier {
+class User_consumer {
     var firstName: String = ""
     var lastName: String = ""
     var companyName: String = ""
