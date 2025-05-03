@@ -1,7 +1,5 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.login
 
-
-
 import android.annotation.SuppressLint
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -29,14 +27,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.*
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.PlugPoint.plugpoint.navigation.ROUTE_ROLES
+import com.PlugPoint.plugpoint.data.AuthViewModel
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.ui.theme.blue
+import com.PlugPoint.plugpoint.ui.theme.lightSlateGray
 import com.PlugPoint.plugpoint.ui.theme.neworange
 import com.PlugPoint.plugpoint.ui.theme.neworange1
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var snackbarMessage by remember { mutableStateOf<String?>(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -59,7 +65,86 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.padding(bottom = 36.dp)
             )
 
-            LoginForm(navController)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                StyledTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = "Email",
+                    icon = Icons.Default.MailOutline,
+                    keyboardType = KeyboardType.Email
+                )
+
+                StyledTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = "Password",
+                    icon = Icons.Default.Lock,
+                    keyboardType = KeyboardType.Password,
+                    isPassword = true
+                )
+
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = blue,
+                        modifier = Modifier.size(48.dp)
+                    )
+                } else {
+                    GradientButton(
+                        text = "Login",
+                        gradient = Brush.horizontalGradient(listOf(neworange, blue)),
+                        onClick = {
+                            isLoading = true
+                            viewModel.loginUser(
+                                email = email,
+                                password = password,
+                                onNavigateToProfile = { profileRoute ->
+                                    isLoading = false
+                                    snackbarMessage = "Login successful"
+                                    navController.navigate(profileRoute)
+                                },
+                                onLoginError = { error ->
+                                    isLoading = false
+                                    snackbarMessage = error
+                                }
+                            )
+                        }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Don't have an account? ",
+                        color = Color.LightGray,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "Register Here",
+                        color = blue,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { navController.navigate("roles") }
+                    )
+                }
+            }
+        }
+
+        snackbarMessage?.let { message ->
+            Snackbar(
+                action = {
+                    TextButton(onClick = { snackbarMessage = null }) {
+                        Text("Dismiss", color = Color.White)
+                    }
+                },
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(text = message, color = Color.White)
+            }
         }
     }
 }
@@ -95,64 +180,6 @@ fun AnimatedSubtleBackground() {
 }
 
 @Composable
-fun LoginForm(navController: NavController) {
-    var emailOrPhone by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    val focusManager = LocalFocusManager.current
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        StyledTextField(
-            value = emailOrPhone,
-            onValueChange = { emailOrPhone = it },
-            label = "Phone Number or Email",
-            icon = Icons.Default.MailOutline,
-            keyboardType = KeyboardType.Email
-        )
-
-        StyledTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = "Password",
-            icon = Icons.Default.Lock,
-            keyboardType = KeyboardType.Password,
-            isPassword = true
-        )
-
-        GradientButton(
-            text = "Login",
-            gradient = Brush.horizontalGradient(listOf(neworange, blue)),
-            onClick = {
-                focusManager.clearFocus()
-                // TODO: Handle login logic
-            }
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Don't have an account? ",
-                color = Color.LightGray,
-                fontSize = 14.sp
-            )
-            Text(
-                text = "Register Here",
-                color = blue,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable { navController.navigate(ROUTE_ROLES)
-
-                }
-            )
-        }
-    }
-}
-
-@Composable
 fun StyledTextField(
     value: String,
     onValueChange: (String) -> Unit,
@@ -167,7 +194,7 @@ fun StyledTextField(
         value = value,
         onValueChange = onValueChange,
         label = {
-            Text(text = label, color = Color.LightGray)
+            Text(text = label, color = lightSlateGray)
         },
         singleLine = true,
         leadingIcon = {
@@ -229,6 +256,6 @@ fun GradientButton(
 
 @Preview
 @Composable
-private fun login_screen_prev() {
-    LoginScreen(rememberNavController())
+private fun LoginScreenPreview() {
+    LoginScreen(rememberNavController(), viewModel = AuthViewModel())
 }

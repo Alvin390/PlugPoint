@@ -4,17 +4,10 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,19 +15,8 @@ import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,19 +28,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.PlugPoint.plugpoint.R
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.R
+import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
-import com.PlugPoint.plugpoint.navigation.ROUTE_NOTIFICATION
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 
 @Composable
-fun SupplierProfileScreen(navController: NavController) {
+fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel, userId: String) {
     Scaffold(
         topBar = { SupplierTopBar() },
         bottomBar = { SupplierBottomNavBar(navController) }
@@ -79,7 +60,7 @@ fun SupplierProfileScreen(navController: NavController) {
 
             // Clickable Feature Cards in a Grid
             LazyVerticalGrid(
-                columns = GridCells.Fixed(3), // 3 cards per row
+                columns = GridCells.Fixed(3),
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -94,47 +75,25 @@ fun SupplierProfileScreen(navController: NavController) {
                         "Logout" to R.drawable.logoutsupply
                     )
                 ) { (title, imageRes) ->
-                    FeatureCard(title, imageRes)
-                    when (title) {
-                        "Commodities" -> navController.navigate(ROUTE_COMMODITY_LIST)
-                        "Accepted Applications" -> { /* Add navigation or logic here */ }
-                        "All Applications" -> { /* Add navigation or logic here */ }
-                        "Edit Profile" -> { /* Add navigation or logic here */ }
-                        "Settings" -> { /* Add navigation or logic here */ }
-                        "Logout" -> { /* Add logout logic here */ }
-                    }
-
+                    FeatureCard(
+                        title = title,
+                        imageRes = imageRes,
+                        onClick = {
+                            when (title) {
+                                "Commodities" -> navController.navigate(ROUTE_COMMODITY_LIST)
+                                "Accepted Applications" -> { /* Add navigation or logic here */ }
+                                "All Applications" -> { /* Add navigation or logic here */ }
+                                "Edit Profile" -> { /* Add navigation or logic here */ }
+                                "Settings" -> { /* Add navigation or logic here */ }
+                                "Logout" -> { /* Add logout logic here */ }
+                            }
+                        }
+                    )
                 }
             }
         }
     }
 }
-
-@Composable
-fun SupplierTopBar() {
-    val gradientColors = listOf(
-        Color(0xFFFFA500), // orange
-        Color(0xFFFF8C00), // darkOrange
-        Color(0xFFFF7F50), // coral
-        Color(0xFFFF6347)  // tomatoOrange
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Brush.horizontalGradient(gradientColors))
-            .padding(vertical = 18.dp, horizontal = 16.dp) // Reduced padding
-    ) {
-        Text(
-            text = "PlugPoint",
-            fontSize = 29.sp, // Reduced font size
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            fontFamily = FontFamily.Cursive
-        )
-    }
-}
-
 @Composable
 fun ProfileDetails() {
     Row(
@@ -154,9 +113,34 @@ fun ProfileDetails() {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text("Jane Doe", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text("Supplier", color = Color.Gray, fontSize = 14.sp)
+            Text("John Smith", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Consumer", color = Color.Gray, fontSize = 14.sp)
         }
+    }
+}
+
+@Composable
+fun SupplierTopBar() {
+    val gradientColors = listOf(
+        Color(0xFFFFA500), // orange
+        Color(0xFFFF8C00), // darkOrange
+        Color(0xFFFF7F50), // coral
+        Color(0xFFFF6347)  // tomatoOrange
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Brush.horizontalGradient(gradientColors))
+            .padding(vertical = 18.dp, horizontal = 16.dp)
+    ) {
+        Text(
+            text = "PlugPoint",
+            fontSize = 29.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            fontFamily = FontFamily.Cursive
+        )
     }
 }
 
@@ -170,12 +154,13 @@ fun SupplierBottomNavBar(navController: NavController) {
         Icons.Default.MailOutline
     )
     val routes = listOf(
-        ROUTE_PROFILE_SUPPLIER, // Replace with the actual route for "My Profile"
-        ROUTE_SEARCH_SUPPLIER,  // Replace with the actual route for "Search"
-        ROUTE_NOTIFICATION,     // Replace with the actual route for "Notifications"
-//        ROUTE_CHAT            // Replace with the actual route for "Chat"
+        ROUTE_PROFILE_SUPPLIER, // Navigate to "My Profile"
+        ROUTE_SEARCH_SUPPLIER,  // Navigate to "Search"
+        null,                   // Notifications (not built yet)
+        null                    // Chat (not built yet)
     )
-    var selectedIndex by remember { mutableStateOf(0) }
+
+    val currentRoute = navController.currentBackStackEntry?.destination?.route
 
     NavigationBar(
         containerColor = Color(0xFFFFDEAD),
@@ -191,19 +176,23 @@ fun SupplierBottomNavBar(navController: NavController) {
                     )
                 },
                 label = { Text(label, fontSize = 12.sp) },
-                selected = selectedIndex == index,
+                selected = routes[index] != null && currentRoute?.startsWith(routes[index] ?: "") == true,
                 onClick = {
-                    selectedIndex = index
-                    navController.navigate(routes[index]) {
-                        popUpTo(navController.graph.startDestinationId) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
+                    val userId = "sampleUserId" // Replace with the actual user ID
+                    if (routes[index] != null && routes[index] != currentRoute) {
+                        navController.navigate("${routes[index]}/$userId") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFFFF8C00),
                     selectedTextColor = Color(0xFFFF8C00),
-                    indicatorColor = Color(0xFFFFEFD5)
+                    indicatorColor = Color(0xFFFFEFD5),
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray,
                 )
             )
         }
@@ -211,14 +200,18 @@ fun SupplierBottomNavBar(navController: NavController) {
 }
 
 @Composable
-fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
+fun FeatureCard(
+    title: String,
+    @DrawableRes imageRes: Int,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
-            .size(150.dp) // Increased size
-            .clickable {  },
+            .size(150.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF5EE)) // Seashell-like
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF5EE))
     ) {
         Column(
             modifier = Modifier
@@ -230,9 +223,9 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
             Image(
                 painter = painterResource(id = imageRes),
                 contentDescription = title,
-                modifier = Modifier.size(48.dp) // Adjusted image size
+                modifier = Modifier.size(48.dp)
             )
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) // Adjusted font size
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -240,5 +233,5 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int) {
 @Preview
 @Composable
 private fun supplier_profile_preview() {
-    SupplierProfileScreen(rememberNavController())
+    SupplierProfileScreen(rememberNavController(), viewModel = AuthViewModel(), userId = "sampleUserId")
 }

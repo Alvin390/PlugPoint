@@ -97,6 +97,7 @@ fun ConsumerTopBar() {
             .fillMaxWidth()
             .background(Brush.horizontalGradient(gradientColors))
             .padding(vertical = 18.dp, horizontal = 16.dp)
+            .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
     ) {
         Text(
             text = "PlugPoint",
@@ -143,12 +144,14 @@ fun ConsumerBottomNavBar(navController: NavController) {
         Icons.Default.MailOutline
     )
     val routes = listOf(
-        ROUTE_PROFILE_CONSUMER, // Replace with the actual route for "My Profile"
-        ROUTE_SEARCH_CONSUMER,  // Replace with the actual route for "Search"
-        ROUTE_NOTIFICATION,     // Replace with the actual route for "Notifications"
-//        ROUTE_CHAT            // Replace with the actual route for "Chat"
+        ROUTE_PROFILE_CONSUMER, // Navigate to "My Profile"
+        ROUTE_SEARCH_CONSUMER,  // Navigate to "Search"
+        null,                   // Notifications (not built yet)
+        null                    // Chat (not built yet)
     )
-    var selectedIndex by remember { mutableStateOf(0) }
+
+    // Get the current route
+    val currentRoute = navController.currentBackStackEntry?.destination?.route
 
     NavigationBar(
         containerColor = Color(0xFFADD8E6), // lightBlue
@@ -164,8 +167,16 @@ fun ConsumerBottomNavBar(navController: NavController) {
                     )
                 },
                 label = { Text(label, fontSize = 12.sp) },
-                selected = selectedIndex == index,
-                onClick = { selectedIndex = index },
+                selected = routes[index] == currentRoute,
+                onClick = {
+                    if (routes[index] != null && routes[index] != currentRoute) {
+                        navController.navigate(routes[index]!!) {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = Color(0xFF1E90FF),
                     selectedTextColor = Color(0xFF1E90FF),

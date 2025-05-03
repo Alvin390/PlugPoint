@@ -26,13 +26,14 @@ import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNa
 fun SearchConsumerScreen(navController: NavController) {
     Scaffold(
         topBar = { SearchBarUI() },
-        bottomBar = { ConsumerBottomNavBarSearch() }
+        bottomBar = { ConsumerBottomNavBar(navController) }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
+                .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
         )
     }
 }
@@ -46,6 +47,7 @@ fun SearchBarUI() {
             .fillMaxWidth()
             .background(Color.White)
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
     ) {
         OutlinedTextField(
             value = searchText,
@@ -66,42 +68,42 @@ fun SearchBarUI() {
         )
     }
 }
-@Composable
-fun ConsumerBottomNavBarSearch() {
-    val items = listOf("My Profile", "Search", "Notifications", "Chat")
-    val icons = listOf(
-        Icons.Default.Person,
-        Icons.Default.Search,
-        Icons.Default.Notifications,
-        Icons.Default.MailOutline
-    )
-    var selectedIndex by remember { mutableStateOf(1) }
-
-    NavigationBar(
-        containerColor = Color(0xFFADD8E6), // lightBlue
-        contentColor = Color.Black,
-        tonalElevation = 8.dp
-    ) {
-        items.forEachIndexed { index, label ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = icons[index],
-                        contentDescription = label
-                    )
-                },
-                label = { Text(label, fontSize = 12.sp) },
-                selected = selectedIndex == index,
-                onClick = { selectedIndex = index },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFF1E90FF),
-                    selectedTextColor = Color(0xFF1E90FF),
-                    indicatorColor = Color(0xFF87CEFA)
-                )
-            )
-        }
-    }
-}
+//@Composable
+//fun ConsumerBottomNavBarSearch() {
+//    val items = listOf("My Profile", "Search", "Notifications", "Chat")
+//    val icons = listOf(
+//        Icons.Default.Person,
+//        Icons.Default.Search,
+//        Icons.Default.Notifications,
+//        Icons.Default.MailOutline
+//    )
+//    var selectedIndex by remember { mutableStateOf(1) }
+//
+//    NavigationBar(
+//        containerColor = Color(0xFFADD8E6), // lightBlue
+//        contentColor = Color.Black,
+//        tonalElevation = 8.dp
+//    ) {
+//        items.forEachIndexed { index, label ->
+//            NavigationBarItem(
+//                icon = {
+//                    Icon(
+//                        imageVector = icons[index],
+//                        contentDescription = label
+//                    )
+//                },
+//                label = { Text(label, fontSize = 12.sp) },
+//                selected = selectedIndex == index,
+//                onClick = { selectedIndex = index },
+//                colors = NavigationBarItemDefaults.colors(
+//                    selectedIconColor = Color(0xFF1E90FF),
+//                    selectedTextColor = Color(0xFF1E90FF),
+//                    indicatorColor = Color(0xFF87CEFA)
+//                )
+//            )
+//        }
+//    }
+//}
 
 @Preview
 @Composable

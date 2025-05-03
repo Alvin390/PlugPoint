@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -66,14 +69,10 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.ui.theme.amberBlaze
-import com.PlugPoint.plugpoint.ui.theme.charcoalDust
 import com.PlugPoint.plugpoint.ui.theme.dimGray
 import com.PlugPoint.plugpoint.ui.theme.pineMist
-import com.PlugPoint.plugpoint.ui.theme.rubyWine
 import com.PlugPoint.plugpoint.ui.theme.scarlet
-import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierTopBar
-import kotlin.text.set
-import kotlin.toString
+import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 
 
 @Composable
@@ -98,6 +97,7 @@ fun SupplierCommodityScreen(navController: NavController) {
                 .fillMaxWidth()
                 .background(Brush.horizontalGradient(gradientColors))
                 .padding(vertical = 18.dp, horizontal = 16.dp) // Reduced padding
+                .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
         ) {
             Text(
                 text = "PlugPoint",
@@ -120,7 +120,7 @@ fun SupplierCommodityScreen(navController: NavController) {
         topBar = { SupplierTopBarCommodity {
             showDialog = true
             isEditing=true} },
-        bottomBar = { SupplierBottomNavBar() }
+        bottomBar = { SupplierBottomNavBar(navController) }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -432,42 +432,42 @@ fun PostCommodityDialog(
         }
     )
 }
-@Composable
-fun SupplierBottomNavBar() {
-    val items = listOf("My Profile", "Search", "Notifications", "Chat")
-    val icons = listOf(
-        Icons.Default.Person,
-        Icons.Default.Search,
-        Icons.Default.Notifications,
-        Icons.Default.MailOutline
-    )
-    var selectedIndex by remember { mutableStateOf(0) }
-
-    NavigationBar(
-        containerColor = Color(0xFFFFDEAD),
-        contentColor = Color.Black,
-        tonalElevation = 8.dp
-    ) {
-        items.forEachIndexed { index, label ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = icons[index],
-                        contentDescription = label
-                    )
-                },
-                label = { Text(label, fontSize = 12.sp) },
-                selected = selectedIndex == index,
-                onClick = { selectedIndex = index },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFFFF8C00),
-                    selectedTextColor = Color(0xFFFF8C00),
-                    indicatorColor = Color(0xFFFFEFD5)
-                )
-            )
-        }
-    }
-}
+//@Composable
+//fun SupplierBottomNavBar() {
+//    val items = listOf("My Profile", "Search", "Notifications", "Chat")
+//    val icons = listOf(
+//        Icons.Default.Person,
+//        Icons.Default.Search,
+//        Icons.Default.Notifications,
+//        Icons.Default.MailOutline
+//    )
+//    var selectedIndex by remember { mutableStateOf(0) }
+//
+//    NavigationBar(
+//        containerColor = Color(0xFFFFDEAD),
+//        contentColor = Color.Black,
+//        tonalElevation = 8.dp
+//    ) {
+//        items.forEachIndexed { index, label ->
+//            NavigationBarItem(
+//                icon = {
+//                    Icon(
+//                        imageVector = icons[index],
+//                        contentDescription = label
+//                    )
+//                },
+//                label = { Text(label, fontSize = 12.sp) },
+//                selected = selectedIndex == index,
+//                onClick = { selectedIndex = index },
+//                colors = NavigationBarItemDefaults.colors(
+//                    selectedIconColor = Color(0xFFFF8C00),
+//                    selectedTextColor = Color(0xFFFF8C00),
+//                    indicatorColor = Color(0xFFFFEFD5)
+//                )
+//            )
+//        }
+//    }
+//}
 data class Commodity(
     val name: String,
     val quantity: String,

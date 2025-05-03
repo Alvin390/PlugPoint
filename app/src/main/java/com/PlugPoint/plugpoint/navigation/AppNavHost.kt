@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier.SupplierCommodityScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerProfileScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.login.LoginScreen
@@ -27,16 +28,17 @@ fun AppNavHost(
 ) {
     NavHost(navController = navController, modifier = modifier, startDestination = startDestination) {
         composable(ROUTE_LOGIN) {
-            LoginScreen(navController)
+            LoginScreen(navController, viewModel = AuthViewModel())
         }
         composable(ROUTE_REGISTRATION_SUPPLIER) {
-            RegistrationSupplierScreen(navController)
+            RegistrationSupplierScreen(navController, viewModel = AuthViewModel())
         }
         composable(ROUTE_REGISTRATION_CONSUMER) {
-            RegistrationConsumerScreen(navController)
+            RegistrationConsumerScreen(navController, viewModel = AuthViewModel())
         }
-        composable(ROUTE_PROFILE_SUPPLIER) {
-            SupplierProfileScreen(navController)
+        composable("$ROUTE_PROFILE_SUPPLIER/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            SupplierProfileScreen(navController, viewModel = AuthViewModel(), userId = userId)
         }
         composable(ROUTE_PROFILE_CONSUMER) {
             ConsumerProfileScreen(navController)
@@ -47,8 +49,9 @@ fun AppNavHost(
         composable(ROUTE_ROLES) {
             RoleSelectionScreen(navController)
         }
-        composable(ROUTE_SEARCH_SUPPLIER) {
-            Search_supply_screen(navController)
+        composable("$ROUTE_SEARCH_SUPPLIER/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            Search_supply_screen(navController, userId)
         }
         composable(ROUTE_SEARCH_CONSUMER) {
             SearchConsumerScreen(navController)

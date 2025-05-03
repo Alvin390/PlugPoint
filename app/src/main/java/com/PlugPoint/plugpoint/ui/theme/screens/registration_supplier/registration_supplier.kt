@@ -34,12 +34,13 @@ import coil.compose.rememberAsyncImagePainter
 import android.net.Uri
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun RegistrationSupplierScreen(navController: NavController) {
+fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewModel) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     // Initialize the image picker launcher
@@ -360,7 +361,24 @@ fun RegistrationSupplierScreen(navController: NavController) {
                 }
                 item {
                     Button(
-                        onClick = { /* Handle registration logic */ },
+                        onClick = {     val formData = mapOf(
+                            "firstName" to firstName,
+                            "lastName" to lastName,
+                            "companyName" to companyName,
+                            "idNumber" to idNumber,
+                            "county" to county,
+                            "category" to category,
+                            "email" to email,
+                            "password" to password,
+                            "confirmPassword" to confirmPassword
+                        )
+
+                            viewModel.registerUser(
+                                userType = "supplier",
+                                formData = formData
+                            ) { profileRoute ->
+                                navController.navigate(profileRoute)
+                            } },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -377,5 +395,5 @@ fun RegistrationSupplierScreen(navController: NavController) {
 @Preview
 @Composable
 private fun SupplierRegisterPreview() {
-    RegistrationSupplierScreen(rememberNavController())
+    RegistrationSupplierScreen(rememberNavController(),viewModel = AuthViewModel())
 }

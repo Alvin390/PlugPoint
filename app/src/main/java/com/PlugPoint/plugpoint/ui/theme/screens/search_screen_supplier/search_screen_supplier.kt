@@ -19,18 +19,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 
 @Composable
-fun Search_supply_screen(navController: NavController) {
+fun Search_supply_screen(navController: NavController,userId: String) {
     Scaffold(
         topBar = { SearchBarUI() },
-        bottomBar = { SupplierBottomNavBarSearch() }
+        bottomBar = { SupplierBottomNavBar(navController) }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
+                .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
         )
     }
 }
@@ -44,6 +48,7 @@ fun SearchBarUI() {
             .fillMaxWidth()
             .background(Color.White)
             .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
     ) {
         OutlinedTextField(
             value = searchText,
@@ -65,45 +70,63 @@ fun SearchBarUI() {
     }
 }
 
-@Composable
-fun SupplierBottomNavBarSearch() {
-    val items = listOf("My Profile", "Search", "Notifications", "Chat")
-    val icons = listOf(
-        Icons.Default.Person,
-        Icons.Default.Search,
-        Icons.Default.Notifications,
-        Icons.Default.MailOutline
-    )
-    var selectedIndex by remember { mutableStateOf(1) }
-
-    NavigationBar(
-        containerColor = Color(0xFFFFDEAD),
-        contentColor = Color.Black,
-        tonalElevation = 8.dp
-    ) {
-        items.forEachIndexed { index, label ->
-            NavigationBarItem(
-                icon = {
-                    Icon(
-                        imageVector = icons[index],
-                        contentDescription = label
-                    )
-                },
-                label = { Text(label, fontSize = 12.sp) },
-                selected = selectedIndex == index,
-                onClick = { selectedIndex = index },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFFFF8C00),
-                    selectedTextColor = Color(0xFFFF8C00),
-                    indicatorColor = Color(0xFFFFEFD5)
-                )
-            )
-        }
-    }
-}
+//@Composable
+//fun SupplierBottomNavBar(navController: NavController) {
+//    val items = listOf("My Profile", "Search", "Notifications", "Chat")
+//    val icons = listOf(
+//        Icons.Default.Person,
+//        Icons.Default.Search,
+//        Icons.Default.Notifications,
+//        Icons.Default.MailOutline
+//    )
+//    val routes = listOf(
+//        ROUTE_PROFILE_SUPPLIER, // Navigate to "My Profile"
+//        ROUTE_SEARCH_SUPPLIER,  // Navigate to "Search"
+//        null,                   // Notifications (not built yet)
+//        null                    // Chat (not built yet)
+//    )
+//
+//    // Get the current route
+//    val currentRoute = navController.currentBackStackEntry?.destination?.route
+//
+//    NavigationBar(
+//        containerColor = Color(0xFFFFDEAD),
+//        contentColor = Color.Black,
+//        tonalElevation = 8.dp
+//    ) {
+//        items.forEachIndexed { index, label ->
+//            NavigationBarItem(
+//                icon = {
+//                    Icon(
+//                        imageVector = icons[index],
+//                        contentDescription = label
+//                    )
+//                },
+//                label = { Text(label, fontSize = 12.sp) },
+//                selected = routes[index] == currentRoute,
+//                onClick = {
+//                    if (routes[index] != null && routes[index] != currentRoute) {
+//                        navController.navigate(routes[index]!!) {
+//                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+//                            launchSingleTop = true
+//                            restoreState = true
+//                        }
+//                    }
+//                },
+//                colors = NavigationBarItemDefaults.colors(
+//                    selectedIconColor = Color(0xFFFF8C00),
+//                    selectedTextColor = Color(0xFFFF8C00),
+//                    indicatorColor = Color(0xFFFFEFD5),
+//                    unselectedIconColor = Color.Gray,
+//                    unselectedTextColor = Color.Gray
+//                )
+//            )
+//        }
+//    }
+//}
 
 @Preview
 @Composable
 private fun search_supply_preview() {
-    Search_supply_screen(rememberNavController())
+    Search_supply_screen(rememberNavController(),userId = "sampleUserId")
 }

@@ -32,12 +32,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun RegistrationConsumerScreen(navController: NavController) {
+fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthViewModel) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     // Initialize the image picker launcher
@@ -300,7 +301,23 @@ fun RegistrationConsumerScreen(navController: NavController) {
                 item {
                     // Register Button
                     Button(
-                        onClick = { /* Handle registration logic */ },
+                        onClick = {    val formData = mapOf(
+                            "firstName" to firstName,
+                            "lastName" to lastName,
+                            "idNumber" to idNumber,
+                            "county" to county,
+                            "category" to category,
+                            "email" to email,
+                            "password" to password,
+                            "confirmPassword" to confirmPassword
+                        )
+
+                            viewModel.registerUser(
+                                userType = "consumer",
+                                formData = formData
+                            ) { profileRoute ->
+                                navController.navigate(profileRoute)
+                            } },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -364,5 +381,5 @@ fun RegistrationConsumerScreen(navController: NavController) {
 @Preview
 @Composable
 private fun ConsumerRegisterPreview() {
-    RegistrationConsumerScreen(rememberNavController())
+    RegistrationConsumerScreen(rememberNavController(),viewModel = AuthViewModel())
 }
