@@ -2,6 +2,7 @@ package com.PlugPoint.plugpoint.data
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
@@ -18,17 +19,8 @@ class AuthViewModel : ViewModel() {
     private val _supplierDetails = MutableStateFlow<UserSupplier?>(null)
     val supplierDetails: StateFlow<UserSupplier?> = _supplierDetails
 
-    fun fetchSupplierDetails(userId: String) {
-        val database = FirebaseDatabase.getInstance().reference
-        database.child("suppliers").child(userId).get()
-            .addOnSuccessListener { snapshot ->
-                val supplier = snapshot.getValue(UserSupplier::class.java)
-                _supplierDetails.value = supplier
-            }
-            .addOnFailureListener {
-                _supplierDetails.value = null
-            }
-    }
+    private val _consumerDetails = MutableStateFlow<UserConsumer?>(null)
+    val consumerDetails: StateFlow<UserConsumer?> = _consumerDetails
 
 
     private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
@@ -100,7 +92,7 @@ class AuthViewModel : ViewModel() {
                     }
                     if (consumer != null) {
                         val consumerId = consumer.key ?: ""
-                        onNavigateToProfile(ROUTE_PROFILE_CONSUMER) // Navigate to consumer profile
+                        onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$consumerId")// Navigate to consumer profile
                     } else {
                         onLoginError("Invalid email or password.")
                     }
@@ -111,6 +103,31 @@ class AuthViewModel : ViewModel() {
                 onLoginError("Failed to fetch supplier data: ${it.message}")
             }
         }
+    }
+
+    fun fetchProfileDetails(userId: String, userType: String) {
+        val database = FirebaseDatabase.getInstance().reference
+        val node = if (userType == "supplier") "suppliers" else "consumers"
+
+        database.child(node).child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (userType == "supplier") {
+                    val supplier = snapshot.getValue(UserSupplier::class.java)
+                    _supplierDetails.value = supplier
+                } else {
+                    val consumer = snapshot.getValue(UserConsumer::class.java)
+                    _consumerDetails.value = consumer
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                if (userType == "supplier") {
+                    _supplierDetails.value = null
+                } else {
+                    _consumerDetails.value = null
+                }
+            }
+        })
     }
 
 

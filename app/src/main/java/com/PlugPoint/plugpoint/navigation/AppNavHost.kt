@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.data.AuthViewModel
+import com.PlugPoint.plugpoint.data.CommodityViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier.SupplierCommodityScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerProfileScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.login.LoginScreen
@@ -40,8 +41,9 @@ fun AppNavHost(
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             SupplierProfileScreen(navController, viewModel = AuthViewModel(), userId = userId)
         }
-        composable(ROUTE_PROFILE_CONSUMER) {
-            ConsumerProfileScreen(navController)
+        composable("$ROUTE_PROFILE_CONSUMER/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ConsumerProfileScreen(navController, viewModel = AuthViewModel(), userId = userId)
         }
         composable(ROUTE_NOTIFICATION) {
             NotificationScreen(navController)
@@ -63,7 +65,7 @@ fun AppNavHost(
             SplashScreen(navController)
         }
         composable  (ROUTE_COMMODITY_LIST) {
-            SupplierCommodityScreen(navController)
+            SupplierCommodityScreen(navController,viewModel = CommodityViewModel())
         }
 //        composable  (ROUTE_EDIT_PROFILE_SUPPLIER) {
 //            EditProfileSupplierScreen()

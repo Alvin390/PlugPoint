@@ -32,14 +32,22 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
+import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import kotlin.sequences.ifEmpty
+import kotlin.text.category
 
 @Composable
 fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel, userId: String) {
+    val userSupplier by viewModel.supplierDetails.collectAsState()
+
+    LaunchedEffect(userId) {
+        viewModel.fetchProfileDetails(userId, "supplier")
+    }
     Scaffold(
         topBar = { SupplierTopBar() },
         bottomBar = { SupplierBottomNavBar(navController) }
@@ -54,8 +62,11 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
             Spacer(modifier = Modifier.height(8.dp))
 
             // Profile Details
-            ProfileDetails()
-
+            if (userSupplier != null) {
+                ProfileDetails(userSupplier!!)
+            } else {
+                Text("Loading...", color = Color.Gray)
+            }
             Spacer(modifier = Modifier.height(16.dp))
 
             // Clickable Feature Cards in a Grid
@@ -95,7 +106,11 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
     }
 }
 @Composable
-fun ProfileDetails() {
+fun ProfileDetails(userSupplier: UserSupplier) {
+    val name = "${userSupplier.firstName} ${userSupplier.lastName}"
+    val companyName = userSupplier.companyName.ifEmpty { "No Company" }
+    val county = userSupplier.county
+    val category = userSupplier.category
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,7 +128,10 @@ fun ProfileDetails() {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text("John Smith", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(name, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(companyName, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(county, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(category, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text("Consumer", color = Color.Gray, fontSize = 14.sp)
         }
     }

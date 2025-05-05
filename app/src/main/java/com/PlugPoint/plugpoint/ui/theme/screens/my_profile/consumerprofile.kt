@@ -34,16 +34,25 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.R
+import com.PlugPoint.plugpoint.data.AuthViewModel
+import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
 import com.PlugPoint.plugpoint.navigation.ROUTE_NOTIFICATION
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import kotlin.text.category
+import kotlin.text.ifEmpty
 
 
 @Composable
-fun ConsumerProfileScreen(navController: NavController) {
+fun ConsumerProfileScreen(navController: NavController,viewModel: AuthViewModel,userId: String) {
+    val userConsumer by viewModel.consumerDetails.collectAsState()
+
+    LaunchedEffect(userId) {
+        viewModel.fetchProfileDetails(userId, "consumer")
+    }
     Scaffold(
         topBar = { ConsumerTopBar() },
         bottomBar = { ConsumerBottomNavBar(navController) }
@@ -57,7 +66,11 @@ fun ConsumerProfileScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            ProfileDetails()
+            if (userConsumer != null) {
+                ProfileDetails(userConsumer = userConsumer!!)
+            } else {
+                Text("Loading...", color = Color.Gray)
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -110,7 +123,10 @@ fun ConsumerTopBar() {
 }
 
 @Composable
-fun ProfileDetails() {
+fun ProfileDetails(userConsumer: UserConsumer) {
+    val name = "${userConsumer.firstName} ${userConsumer.lastName}"
+    val county = userConsumer.county
+    val category = userConsumer.category
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -128,8 +144,10 @@ fun ProfileDetails() {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text("John Smith", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text("Consumer", color = Color.Gray, fontSize = 14.sp)
+            Text(name, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(county, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(category, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+//            Text("Consumer", color = Color.Gray, fontSize = 14.sp)
         }
     }
 }
@@ -217,5 +235,5 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavCon
 @Preview
 @Composable
 private fun consumer_profile_preview() {
-    ConsumerProfileScreen(rememberNavController())
+    ConsumerProfileScreen(rememberNavController(),userId = "sampleUserId",viewModel = AuthViewModel())
 }

@@ -45,8 +45,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +71,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
+import com.PlugPoint.plugpoint.data.CommodityViewModel
+import com.PlugPoint.plugpoint.models.Commodity
 import com.PlugPoint.plugpoint.ui.theme.amberBlaze
 import com.PlugPoint.plugpoint.ui.theme.dimGray
 import com.PlugPoint.plugpoint.ui.theme.pineMist
@@ -76,12 +81,14 @@ import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 
 
 @Composable
-fun SupplierCommodityScreen(navController: NavController) {
+fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityViewModel) {
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     val commodities = remember { mutableStateListOf<Commodity>() }
     var showActionDialog by remember { mutableStateOf(false) }
     var selectedCommodity by remember { mutableStateOf<Commodity?>(null) }
+    var snackbarMessage by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     @Composable
     fun SupplierTopBarCommodity(onAddClick: () -> Unit) {
@@ -120,7 +127,8 @@ fun SupplierCommodityScreen(navController: NavController) {
         topBar = { SupplierTopBarCommodity {
             showDialog = true
             isEditing=true} },
-        bottomBar = { SupplierBottomNavBar(navController) }
+        bottomBar = { SupplierBottomNavBar(navController) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -186,7 +194,7 @@ fun SupplierCommodityScreen(navController: NavController) {
                                     textDecoration = if (commodity.booked) TextDecoration.LineThrough else null
                                 )
                                 Text(
-                                    text = "${commodity.price} per unit",
+                                    text = "${commodity.cost} per unit",
                                     fontSize = 14.sp,
                                     color = if (commodity.booked) Color.Gray else Color.Black,
                                     textDecoration = if (commodity.booked) TextDecoration.LineThrough else null
@@ -200,10 +208,26 @@ fun SupplierCommodityScreen(navController: NavController) {
                 PostCommodityDialog(
                     onDismiss = { showDialog = false },
                     onPost = { commodity ->
-                        commodities.add(commodity)
+                        commodities.add(commodity) // Add to local list immediately
+                        viewModel.addCommodityToFirebase(
+                            commodity = commodity,
+                            userId = "sampleUserId", // Replace with actual user ID
+                            onSuccess = {
+                                snackbarMessage = "Commodity posted successfully!"
+                            },
+                            onFailure = { exception ->
+                                snackbarMessage = "Error: ${exception.message}"
+                            }
+                        )
                         showDialog = false
                     }
                 )
+            }
+            snackbarMessage?.let { message ->
+                LaunchedEffect(message) {
+                    snackbarHostState.showSnackbar(message)
+                    snackbarMessage = null
+                }
             }
 
             if (showActionDialog && selectedCommodity != null) {
@@ -212,7 +236,7 @@ fun SupplierCommodityScreen(navController: NavController) {
                     onBooked = {
                         val index = commodities.indexOf(selectedCommodity)
                         if (index != -1) {
-                            commodities[index] = selectedCommodity!!.copy(booked = true)
+                            commodities[index] = selectedCommodity!!.updateBooked(true) // For non-data class
                         }
                         showActionDialog = false
                     },
@@ -295,8 +319,8 @@ fun PostCommodityDialog(
 ) {
     var name by remember { mutableStateOf(initialCommodity?.name ?: "") }
     var quantity by remember { mutableStateOf(initialCommodity?.quantity ?: "") }
-    var price by remember { mutableStateOf(initialCommodity?.price?.removePrefix("Ksh ") ?: "") }
-    var selectedCurrency by remember { mutableStateOf(if (initialCommodity?.price?.startsWith("Ksh") == true) "Ksh" else "$") }
+    var price by remember { mutableStateOf(initialCommodity?.cost?.removePrefix("Ksh ") ?: "") }
+    var selectedCurrency by remember { mutableStateOf(if (initialCommodity?.cost?.startsWith("Ksh") == true) "Ksh" else "$") }
     var expanded by remember { mutableStateOf(false) }
     var imageUri by remember { mutableStateOf(initialCommodity?.imageUri?.let { Uri.parse(it) }) }
 
@@ -413,7 +437,8 @@ fun PostCommodityDialog(
                             Commodity(
                                 name = name,
                                 quantity = quantity,
-                                price = "$selectedCurrency $price",
+                                cost = "$selectedCurrency $price",
+                                currency = selectedCurrency,
                                 imageUri = imageUri?.toString()
                             )
                         )
@@ -468,16 +493,19 @@ fun PostCommodityDialog(
 //        }
 //    }
 //}
-data class Commodity(
-    val name: String,
-    val quantity: String,
-    val price: String,
-    val imageUri: String? = null,
-    val booked: Boolean = false
-)
+//data class Commodity(
+//    val name: String,
+//    val quantity: String,
+//    val price: String,
+//    val imageUri: String? = null,
+//    val booked: Boolean = false
+//)
 
 @Preview
 @Composable
 private fun commodity_screen_prev() {
-    SupplierCommodityScreen(rememberNavController())
+    SupplierCommodityScreen(
+        navController = rememberNavController(),
+        viewModel = CommodityViewModel() // Provide a mock or default instance
+    )
 }
