@@ -36,6 +36,7 @@ import kotlin.math.sin
 fun RoleSelectionScreen(navController: NavController) {
     Box(
         modifier = Modifier
+            .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxSize()
             .background(Color.Black)
     ) {
@@ -43,6 +44,7 @@ fun RoleSelectionScreen(navController: NavController) {
 
         Column(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxSize()
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.Center,

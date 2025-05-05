@@ -2,6 +2,7 @@ package com.PlugPoint.plugpoint.models
 
 
 class Commodity {
+    var id: String = "" // Add this property
     var name: String = ""
     var quantity: String = ""
     var cost = ""
@@ -10,12 +11,14 @@ class Commodity {
     var booked: Boolean = false
 
     constructor(
+        id: String,
         name: String,
         quantity: String,
         cost: String,
         currency: String,
         imageUri: String?
     ) {
+        this.id = id
         this.name = name
         this.quantity = quantity
         this.cost = cost

@@ -1,58 +1,128 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.search_screen_supplier
 
 
+
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
-import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
+import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel.User
+import com.PlugPoint.plugpoint.models.UserConsumer
+import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 
 @Composable
-fun Search_supply_screen(navController: NavController,userId: String) {
+fun Search_supply_screen(navController: NavController, userId: String, viewModel: SearchSupplierAuthViewModel) {
+    var searchText by remember { mutableStateOf("") } // Use String instead of TextFieldValue
+    val searchResults by viewModel.searchResults.collectAsState()
+
+    @Composable
+    fun UserRow(user: User) {
+        val name = when (user) {
+            is User.Supplier -> "${user.user.firstName} ${user.user.lastName}"
+            is User.Consumer -> "${user.user.firstName} ${user.user.lastName}"
+        }
+        val county = when (user) {
+            is User.Supplier -> user.user.county
+            is User.Consumer -> user.user.county
+        }
+        val category = when (user) {
+            is User.Supplier -> user.user.category
+            is User.Consumer -> user.user.category
+        }
+        val imageUri = when (user) {
+            is User.Supplier -> user.user.imageUri
+            is User.Consumer -> user.user.imageUri
+        }
+
+        Row(
+            modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                imageVector = Icons.Default.Person,
+                contentDescription = "Profile Picture",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(name, fontWeight = FontWeight.Bold)
+                Text(county)
+                Text(category)
+            }
+        }
+    }
     Scaffold(
-        topBar = { SearchBarUI() },
-        bottomBar = { SupplierBottomNavBar(navController) }
+        topBar = {
+            SearchBarUI(searchText) { query ->
+                searchText = query
+                viewModel.searchUsers(query)
+            }
+        },
+        bottomBar = { SupplierBottomNavBar(navController, userId) } // Pass userId here
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
-                .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
-        )
+        ) {
+            if (searchResults.isEmpty()) {
+                Text(
+                    "No results found",
+                    color = Color.Gray,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(searchResults) { user ->
+                        UserRow(user = user)
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun SearchBarUI() {
-    var searchText by remember { mutableStateOf(TextFieldValue("")) }
-
+fun SearchBarUI(searchText: String, onSearch: (String) -> Unit) {
     Box(
         modifier = Modifier
+            .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxWidth()
             .background(Color.White)
             .padding(horizontal = 16.dp, vertical = 12.dp)
-            .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
     ) {
         OutlinedTextField(
-            value = searchText,
-            onValueChange = { searchText = it },
+            value = searchText, // Use String directly
+            onValueChange = { onSearch(it) }, // Pass the updated string
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -128,5 +198,6 @@ fun SearchBarUI() {
 @Preview
 @Composable
 private fun search_supply_preview() {
-    Search_supply_screen(rememberNavController(),userId = "sampleUserId")
+    val mockViewModel = SearchSupplierAuthViewModel()
+    Search_supply_screen(rememberNavController(), userId = "sampleUserId", viewModel = mockViewModel)
 }

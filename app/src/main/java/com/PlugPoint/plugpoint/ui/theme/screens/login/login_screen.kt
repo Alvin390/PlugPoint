@@ -45,6 +45,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
 
     Box(
         modifier = Modifier
+            .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxSize()
             .background(Color.Black)
     ) {
@@ -52,6 +53,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
 
         Column(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxSize()
                 .padding(24.dp),
             verticalArrangement = Arrangement.Center,

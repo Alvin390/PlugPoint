@@ -6,6 +6,7 @@ import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,9 +48,9 @@ class AuthViewModel : ViewModel() {
                 .addOnSuccessListener {
                     _registrationState.value = RegistrationState.Success(userType)
                     val profileRoute = if (userType == "supplier") {
-                        "profile_supplier"
+                        "$ROUTE_PROFILE_SUPPLIER/{userId}"
                     } else {
-                        "profile_consumer"
+                        "$ROUTE_PROFILE_CONSUMER/{userId}"
                     }
                     onNavigateToProfile(profileRoute) // Trigger navigation
                 }
@@ -80,7 +81,7 @@ class AuthViewModel : ViewModel() {
                     it.child("email").value == email && it.child("password").value == password
                 }
                 if (user != null) {
-                    val userId = user.key ?: ""
+                    val userId = FirebaseAuth.getInstance().currentUser?.uid
                     onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$userId")
                     return@addOnSuccessListener
                 }
@@ -111,21 +112,23 @@ class AuthViewModel : ViewModel() {
 
         database.child(node).child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (userType == "supplier") {
-                    val supplier = snapshot.getValue(UserSupplier::class.java)
-                    _supplierDetails.value = supplier
-                } else {
-                    val consumer = snapshot.getValue(UserConsumer::class.java)
-                    _consumerDetails.value = consumer
+                if (snapshot.exists()) {
+                    if (userType == "supplier") {
+                        val supplier = snapshot.getValue(UserSupplier::class.java)
+                        if (_supplierDetails.value != supplier) { // Only update if data changes
+                            _supplierDetails.value = supplier
+                        }
+                    } else {
+                        val consumer = snapshot.getValue(UserConsumer::class.java)
+                        if (_consumerDetails.value != consumer) { // Only update if data changes
+                            _consumerDetails.value = consumer
+                        }
+                    }
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                if (userType == "supplier") {
-                    _supplierDetails.value = null
-                } else {
-                    _consumerDetails.value = null
-                }
+                println("Error fetching profile details: ${error.message}")
             }
         })
     }

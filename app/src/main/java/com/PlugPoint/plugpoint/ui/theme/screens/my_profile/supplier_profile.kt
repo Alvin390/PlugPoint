@@ -38,6 +38,7 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import com.PlugPoint.plugpoint.ui.theme.tomato
 import kotlin.sequences.ifEmpty
 import kotlin.text.category
 
@@ -48,12 +49,30 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
     LaunchedEffect(userId) {
         viewModel.fetchProfileDetails(userId, "supplier")
     }
+
+    LaunchedEffect(Unit) {
+        println("Rendering SupplierProfileScreen")
+    }
+
+    LaunchedEffect(userId) {
+        viewModel.fetchProfileDetails(userId, "supplier")
+        println("Fetching profile details for userId: $userId")
+    }
+
+    if (userSupplier != null) {
+        println("UserSupplier state updated: $userSupplier")
+        ProfileDetails(userSupplier!!)
+    } else {
+        println("UserSupplier is null, showing Loading...")
+        CircularProgressIndicator()
+    }
     Scaffold(
         topBar = { SupplierTopBar() },
-        bottomBar = { SupplierBottomNavBar(navController) }
+        bottomBar = { SupplierBottomNavBar(navController, userId) }
     ) { padding ->
         Column(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
@@ -63,9 +82,11 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
 
             // Profile Details
             if (userSupplier != null) {
+                println("UserSupplier state updated: $userSupplier")
                 ProfileDetails(userSupplier!!)
             } else {
-                Text("Loading...", color = Color.Gray)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally),color= tomato)
+                Text("Loading...", color = Color.Gray, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -91,7 +112,7 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
                         imageRes = imageRes,
                         onClick = {
                             when (title) {
-                                "Commodities" -> navController.navigate(ROUTE_COMMODITY_LIST)
+                                "Commodities" -> navController.navigate("$ROUTE_COMMODITY_LIST/$userId")
                                 "Accepted Applications" -> { /* Add navigation or logic here */ }
                                 "All Applications" -> { /* Add navigation or logic here */ }
                                 "Edit Profile" -> { /* Add navigation or logic here */ }
@@ -107,16 +128,16 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
 }
 @Composable
 fun ProfileDetails(userSupplier: UserSupplier) {
-    val name = "${userSupplier.firstName} ${userSupplier.lastName}"
-    val companyName = userSupplier.companyName.ifEmpty { "No Company" }
-    val county = userSupplier.county
-    val category = userSupplier.category
+    val name = remember(userSupplier) { "${userSupplier.firstName} ${userSupplier.lastName}" }
+    val county = remember(userSupplier) { userSupplier.county.ifEmpty { "Unknown County" } }
+    val category = remember(userSupplier) { userSupplier.category.ifEmpty { "Unknown Category" } }
+    val company = remember(userSupplier) { userSupplier.companyName.ifEmpty { "No Company Company" } }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(id = R.drawable.profile_placeholder),
@@ -128,11 +149,12 @@ fun ProfileDetails(userSupplier: UserSupplier) {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(name, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(companyName, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(county, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(category, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text("Consumer", color = Color.Gray, fontSize = 14.sp)
+            Text(name, fontWeight = FontWeight.Bold)
+            Text(company)
+            Text(category)
+            Text(county)
+            Text("Supplier", color = Color.Gray)
+
         }
     }
 }
@@ -148,6 +170,7 @@ fun SupplierTopBar() {
 
     Box(
         modifier = Modifier
+            .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxWidth()
             .background(Brush.horizontalGradient(gradientColors))
             .padding(vertical = 18.dp, horizontal = 16.dp)
@@ -163,7 +186,7 @@ fun SupplierTopBar() {
 }
 
 @Composable
-fun SupplierBottomNavBar(navController: NavController) {
+fun SupplierBottomNavBar(navController: NavController, userId: String) {
     val items = listOf("My Profile", "Search", "Notifications", "Chat")
     val icons = listOf(
         Icons.Default.Person,
@@ -195,8 +218,7 @@ fun SupplierBottomNavBar(navController: NavController) {
                 },
                 label = { Text(label, fontSize = 12.sp) },
                 selected = routes[index] != null && currentRoute?.startsWith(routes[index] ?: "") == true,
-                onClick = {
-                    val userId = "sampleUserId" // Replace with the actual user ID
+                onClick = { // Replace with the actual user ID
                     if (routes[index] != null && routes[index] != currentRoute) {
                         navController.navigate("${routes[index]}/$userId") {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -251,5 +273,5 @@ fun FeatureCard(
 @Preview
 @Composable
 private fun supplier_profile_preview() {
-    SupplierProfileScreen(rememberNavController(), viewModel = AuthViewModel(), userId = "sampleUserId")
+    SupplierProfileScreen(rememberNavController(), viewModel = AuthViewModel(), userId = "userId")
 }

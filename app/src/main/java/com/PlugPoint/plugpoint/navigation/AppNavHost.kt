@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.data.CommodityViewModel
+import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier.SupplierCommodityScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerProfileScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.login.LoginScreen
@@ -53,7 +54,7 @@ fun AppNavHost(
         }
         composable("$ROUTE_SEARCH_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            Search_supply_screen(navController, userId)
+            Search_supply_screen(navController, userId,viewModel = SearchSupplierAuthViewModel())
         }
         composable(ROUTE_SEARCH_CONSUMER) {
             SearchConsumerScreen(navController)
@@ -64,8 +65,9 @@ fun AppNavHost(
         composable(ROUTE_SPLASH) {
             SplashScreen(navController)
         }
-        composable  (ROUTE_COMMODITY_LIST) {
-            SupplierCommodityScreen(navController,viewModel = CommodityViewModel())
+        composable("$ROUTE_COMMODITY_LIST/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            SupplierCommodityScreen(navController, viewModel = CommodityViewModel(), userId = userId)
         }
 //        composable  (ROUTE_EDIT_PROFILE_SUPPLIER) {
 //            EditProfileSupplierScreen()

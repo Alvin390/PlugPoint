@@ -87,12 +87,15 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
         val context = LocalContext.current
         Box(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(WindowInsets.statusBars.asPaddingValues()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {

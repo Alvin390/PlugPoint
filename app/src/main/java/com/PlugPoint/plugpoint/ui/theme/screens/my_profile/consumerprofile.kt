@@ -59,6 +59,7 @@ fun ConsumerProfileScreen(navController: NavController,viewModel: AuthViewModel,
     ) { padding ->
         Column(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
@@ -107,6 +108,7 @@ fun ConsumerTopBar() {
     )
     Box(
         modifier = Modifier
+            .padding(WindowInsets.statusBars.asPaddingValues())
             .fillMaxWidth()
             .background(Brush.horizontalGradient(gradientColors))
             .padding(vertical = 18.dp, horizontal = 16.dp)

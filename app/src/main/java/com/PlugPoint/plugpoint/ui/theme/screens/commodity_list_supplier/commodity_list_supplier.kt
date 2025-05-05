@@ -78,10 +78,11 @@ import com.PlugPoint.plugpoint.ui.theme.dimGray
 import com.PlugPoint.plugpoint.ui.theme.pineMist
 import com.PlugPoint.plugpoint.ui.theme.scarlet
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
+import okhttp3.internal.userAgent
 
 
 @Composable
-fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityViewModel) {
+fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityViewModel, userId: String) {
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     val commodities = remember { mutableStateListOf<Commodity>() }
@@ -89,6 +90,20 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
     var selectedCommodity by remember { mutableStateOf<Commodity?>(null) }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Update `SupplierCommodityScreen`
+    LaunchedEffect(Unit) {
+        viewModel.fetchCommoditiesFromFirebase(
+            userId = userId, // Replace with actual user ID
+            onSuccess = { fetchedCommodities ->
+                commodities.clear()
+                commodities.addAll(fetchedCommodities)
+            },
+            onFailure = { exception ->
+                snackbarMessage = "Error fetching commodities: ${exception.message}"
+            }
+        )
+    }
 
     @Composable
     fun SupplierTopBarCommodity(onAddClick: () -> Unit) {
@@ -101,6 +116,7 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
 
         Box(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxWidth()
                 .background(Brush.horizontalGradient(gradientColors))
                 .padding(vertical = 18.dp, horizontal = 16.dp) // Reduced padding
@@ -127,18 +143,22 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
         topBar = { SupplierTopBarCommodity {
             showDialog = true
             isEditing=true} },
-        bottomBar = { SupplierBottomNavBar(navController) },
+//        userId= userId
+        bottomBar = { SupplierBottomNavBar(navController, userId) },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { padding ->
         Box(
             modifier = Modifier
+                .padding(WindowInsets.statusBars.asPaddingValues())
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
         ) {
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(WindowInsets.statusBars.asPaddingValues()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(commodities) { commodity ->
@@ -208,20 +228,42 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
                 PostCommodityDialog(
                     onDismiss = { showDialog = false },
                     onPost = { commodity ->
-                        commodities.add(commodity) // Add to local list immediately
-                        viewModel.addCommodityToFirebase(
-                            commodity = commodity,
-                            userId = "sampleUserId", // Replace with actual user ID
-                            onSuccess = {
-                                snackbarMessage = "Commodity posted successfully!"
-                            },
-                            onFailure = { exception ->
-                                snackbarMessage = "Error: ${exception.message}"
-                            }
-                        )
+                        if (isEditing) {
+                            // Update the commodity in the database
+                            viewModel.addCommodityToFirebase(
+                                commodity = commodity,
+                                userId = userId, // Replace with actual user ID
+                                onSuccess = {
+                                    val index = commodities.indexOfFirst { it.id == commodity.id }
+                                    if (index != -1) {
+                                        commodities[index] = commodity // Update the local list
+                                    }
+                                    snackbarMessage = "Commodity updated successfully!"
+                                },
+                                onFailure = { exception ->
+                                    snackbarMessage = "Error updating commodity: ${exception.message}"
+                                }
+                            )
+                        } else {
+                            // Add a new commodity
+                            commodities.add(commodity)
+                            viewModel.addCommodityToFirebase(
+                                commodity = commodity,
+                                userId = userId, // Replace with actual user ID
+                                onSuccess = {
+                                    snackbarMessage = "Commodity posted successfully!"
+                                },
+                                onFailure = { exception ->
+                                    snackbarMessage = "Error: ${exception.message}"
+                                }
+                            )
+                        }
                         showDialog = false
-                    }
+                    },
+                    initialCommodity = if (isEditing) selectedCommodity else null
                 )
+            }
+
             }
             snackbarMessage?.let { message ->
                 LaunchedEffect(message) {
@@ -246,7 +288,20 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
                         isEditing= true
                     },
                     onDelete = {
-                        commodities.remove(selectedCommodity)
+                        val commodityId = selectedCommodity?.id // Ensure the commodity has a unique ID
+                        if (commodityId != null) {
+                            viewModel.deleteCommodityFromFirebase(
+                                userId = userId, // Replace with the actual user ID
+                                commodityId = commodityId,
+                                onSuccess = {
+                                    commodities.remove(selectedCommodity)
+                                    snackbarMessage = "Commodity deleted successfully!"
+                                },
+                                onFailure = { exception ->
+                                    snackbarMessage = "Error deleting commodity: ${exception.message}"
+                                }
+                            )
+                        }
                         showActionDialog = false
                     },
                     onDismiss = { showActionDialog = false }
@@ -254,8 +309,6 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
             }
         }
     }
-}
-
 @Composable
 fun ActionDialog(
     commodity: Commodity,
@@ -435,6 +488,7 @@ fun PostCommodityDialog(
                     if (name.isNotBlank() && quantity.isNotBlank() && price.isNotBlank()) {
                         onPost(
                             Commodity(
+                                id = initialCommodity?.id ?: System.currentTimeMillis().toString(),
                                 name = name,
                                 quantity = quantity,
                                 cost = "$selectedCurrency $price",
@@ -506,6 +560,6 @@ fun PostCommodityDialog(
 private fun commodity_screen_prev() {
     SupplierCommodityScreen(
         navController = rememberNavController(),
-        viewModel = CommodityViewModel() // Provide a mock or default instance
+        viewModel = CommodityViewModel(), userId = "userId"// Provide a mock or default instance
     )
 }
