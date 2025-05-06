@@ -1,45 +1,37 @@
 package com.PlugPoint.plugpoint.data
 
 import com.PlugPoint.plugpoint.models.Commodity
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 
 class CommodityViewModel {
-    fun addCommodityToFirebase(
+    private val firestore = FirebaseFirestore.getInstance()
+
+    fun addCommodityToFirestore(
         commodity: Commodity,
         userId: String, // Ensure this is the supplier's userId
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val database = FirebaseDatabase.getInstance()
-        val userCommoditiesRef =
-            database.getReference("suppliers/$userId/commodities") // Use "suppliers" node
+        val userCommoditiesRef = firestore.collection("suppliers").document(userId).collection("commodities")
 
-        val commodityId = userCommoditiesRef.push().key // Generate a unique ID for the commodity
-        if (commodityId != null) {
-            userCommoditiesRef.child(commodityId).setValue(commodity)
-                .addOnSuccessListener { onSuccess() }
-                .addOnFailureListener { exception -> onFailure(exception) }
-        } else {
-            onFailure(Exception("Failed to generate commodity ID"))
-        }
+        val commodityId = userCommoditiesRef.document().id // Generate a unique ID for the commodity
+        commodity.id = commodityId // Set the ID in the commodity object
+        userCommoditiesRef.document(commodityId).set(commodity)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { exception -> onFailure(exception) }
     }
 
-    // Add this function in `CommodityViewModel`
-    fun fetchCommoditiesFromFirebase(
+    fun fetchCommoditiesFromFirestore(
         userId: String, // Ensure this is the logged-in supplier's userId
         onSuccess: (List<Commodity>) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val database = FirebaseDatabase.getInstance()
-        val userCommoditiesRef =
-            database.getReference("suppliers/$userId/commodities") // Use "suppliers" node
+        val userCommoditiesRef = firestore.collection("suppliers").document(userId).collection("commodities")
 
         userCommoditiesRef.get()
             .addOnSuccessListener { snapshot ->
-                val commodities = snapshot.children.mapNotNull { child ->
-                    val commodity = child.getValue(Commodity::class.java)
-                    commodity?.id = child.key ?: "" // Set the ID from the Firebase key
-                    commodity
+                val commodities = snapshot.documents.mapNotNull { document ->
+                    document.toObject(Commodity::class.java)?.apply { id = document.id }
                 }
                 onSuccess(commodities)
             }
@@ -48,20 +40,16 @@ class CommodityViewModel {
             }
     }
 
-    fun deleteCommodityFromFirebase(
+    fun deleteCommodityFromFirestore(
         userId: String,
         commodityId: String,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val database = FirebaseDatabase.getInstance()
-        val userCommoditiesRef =
-            database.getReference("suppliers/$userId/commodities/$commodityId") // Correct path
+        val commodityRef = firestore.collection("suppliers").document(userId).collection("commodities").document(commodityId)
 
-        userCommoditiesRef.removeValue()
+        commodityRef.delete()
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { exception ->
-                onFailure(exception)
-            }
+            .addOnFailureListener { exception -> onFailure(exception) }
     }
 }

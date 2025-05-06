@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.R
@@ -47,11 +48,14 @@ import kotlin.text.ifEmpty
 
 
 @Composable
-fun ConsumerProfileScreen(navController: NavController,viewModel: AuthViewModel,userId: String) {
-    val userConsumer by viewModel.consumerDetails.collectAsState()
+fun ConsumerProfileScreen(navController: NavController,
+                          authViewModel: AuthViewModel= viewModel(),
+                          userId: String) {
+    authViewModel.fetchProfileDetails(userId, "consumer")
+    val userConsumer by authViewModel.consumerDetails.collectAsState()
 
     LaunchedEffect(userId) {
-        viewModel.fetchProfileDetails(userId, "consumer")
+        authViewModel.fetchProfileDetails(userId, "consumer")
     }
     Scaffold(
         topBar = { ConsumerTopBar() },
@@ -129,6 +133,8 @@ fun ProfileDetails(userConsumer: UserConsumer) {
     val name = "${userConsumer.firstName} ${userConsumer.lastName}"
     val county = userConsumer.county
     val category = userConsumer.category
+    val userType = "Consumer" // Assuming this Composable is specifically for consumers
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -145,11 +151,40 @@ fun ProfileDetails(userConsumer: UserConsumer) {
                 .background(Color.White)
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(name, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(county, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(category, color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-//            Text("Consumer", color = Color.Gray, fontSize = 14.sp)
+        Column(
+            modifier = Modifier.weight(1f) // Allow text column to take available space
+        ) {
+            // Display Name with larger font and strong emphasis
+            Text(
+                text = name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp, // Larger font size for name
+                color = Color.Black // Ensure good contrast
+            )
+
+            Spacer(modifier = Modifier.height(4.dp)) // Add some vertical space
+
+            // Use smaller text for secondary details and add labels
+            Text(
+                text = "Category: $category", // Category is relevant for consumers too
+                fontSize = 14.sp,
+                color = Color.DarkGray // Slightly less prominent color
+            )
+            Text(
+                text = "County: $county",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+
+            Spacer(modifier = Modifier.height(8.dp)) // Add more vertical space
+
+            // Display user type dynamically
+            Text(
+                text = "$userType", // Use the dynamic userType variable
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary, // Use your theme's primary color
+                fontWeight = FontWeight.Medium // Make it slightly bold
+            )
         }
     }
 }
@@ -234,8 +269,8 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavCon
     }
 }
 
-@Preview
-@Composable
-private fun consumer_profile_preview() {
-    ConsumerProfileScreen(rememberNavController(),userId = "sampleUserId",viewModel = AuthViewModel())
-}
+//@Preview
+//@Composable
+//private fun consumer_profile_preview() {
+//    ConsumerProfileScreen(rememberNavController(),userId = "sampleUserId",viewModel = AuthViewModel())
+//}

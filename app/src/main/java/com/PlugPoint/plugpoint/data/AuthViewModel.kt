@@ -7,22 +7,19 @@ import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
-import kotlin.text.get
 
 class AuthViewModel : ViewModel() {
+    private val firestore = FirebaseFirestore.getInstance()
+
     private val _supplierDetails = MutableStateFlow<UserSupplier?>(null)
     val supplierDetails: StateFlow<UserSupplier?> = _supplierDetails
 
     private val _consumerDetails = MutableStateFlow<UserConsumer?>(null)
     val consumerDetails: StateFlow<UserConsumer?> = _consumerDetails
-
 
     private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
     val registrationState: StateFlow<RegistrationState> = _registrationState
@@ -33,30 +30,26 @@ class AuthViewModel : ViewModel() {
         onNavigateToProfile: (String) -> Unit // Callback for navigation
     ) {
         viewModelScope.launch {
-            // Validate form data
             val validationError = validateFormData(formData)
             if (validationError != null) {
                 _registrationState.value = RegistrationState.Failure(validationError)
                 return@launch
             }
 
-            val database = FirebaseDatabase.getInstance().reference
-            val node = if (userType == "supplier") "suppliers" else "consumers"
+            val collection = if (userType == "supplier") "suppliers" else "consumers"
 
-            // Push data to Firebase
-            database.child(node).push().setValue(formData)
-                .addOnSuccessListener {
+            firestore.collection(collection).add(formData)
+                .addOnSuccessListener { documentReference ->
                     _registrationState.value = RegistrationState.Success(userType)
                     val profileRoute = if (userType == "supplier") {
-                        "$ROUTE_PROFILE_SUPPLIER/{userId}"
+                        "$ROUTE_PROFILE_SUPPLIER/${documentReference.id}"
                     } else {
-                        "$ROUTE_PROFILE_CONSUMER/{userId}"
+                        "$ROUTE_PROFILE_CONSUMER/${documentReference.id}"
                     }
-                    onNavigateToProfile(profileRoute) // Trigger navigation
+                    onNavigateToProfile(profileRoute)
                 }
                 .addOnFailureListener { exception ->
-                    val errorMessage = exception.message ?: "An unknown error occurred."
-                    _registrationState.value = RegistrationState.Failure(errorMessage)
+                    _registrationState.value = RegistrationState.Failure(exception.message ?: "An unknown error occurred.")
                 }
         }
     }
@@ -73,66 +66,62 @@ class AuthViewModel : ViewModel() {
                 return@launch
             }
 
-            val database = FirebaseDatabase.getInstance().reference
+            val supplierQuery = firestore.collection("suppliers")
+                .whereEqualTo("email", email)
+                .whereEqualTo("password", password)
 
-            // Check for supplier
-            database.child("suppliers").get().addOnSuccessListener { snapshot ->
-                val user = snapshot.children.find {
-                    it.child("email").value == email && it.child("password").value == password
-                }
-                if (user != null) {
-                    val userId = FirebaseAuth.getInstance().currentUser?.uid
-                    onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$userId")
-                    return@addOnSuccessListener
-                }
+            supplierQuery.get()
+                .addOnSuccessListener { snapshot ->
+                    if (!snapshot.isEmpty) {
+                        val userId = snapshot.documents.first().id
+                        onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$userId")
+                        return@addOnSuccessListener
+                    }
 
-                // Check for consumer
-                database.child("consumers").get().addOnSuccessListener { consumerSnapshot ->
-                    val consumer = consumerSnapshot.children.find {
-                        it.child("email").value == email && it.child("password").value == password
-                    }
-                    if (consumer != null) {
-                        val consumerId = consumer.key ?: ""
-                        onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$consumerId")// Navigate to consumer profile
-                    } else {
-                        onLoginError("Invalid email or password.")
-                    }
-                }.addOnFailureListener {
-                    onLoginError("Failed to fetch consumer data: ${it.message}")
+                    val consumerQuery = firestore.collection("consumers")
+                        .whereEqualTo("email", email)
+                        .whereEqualTo("password", password)
+
+                    consumerQuery.get()
+                        .addOnSuccessListener { consumerSnapshot ->
+                            if (!consumerSnapshot.isEmpty) {
+                                val consumerId = consumerSnapshot.documents.first().id
+                                onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$consumerId")
+                            } else {
+                                onLoginError("Invalid email or password.")
+                            }
+                        }
+                        .addOnFailureListener {
+                            onLoginError("Failed to fetch consumer data: ${it.message}")
+                        }
                 }
-            }.addOnFailureListener {
-                onLoginError("Failed to fetch supplier data: ${it.message}")
-            }
+                .addOnFailureListener {
+                    onLoginError("Failed to fetch supplier data: ${it.message}")
+                }
         }
     }
 
     fun fetchProfileDetails(userId: String, userType: String) {
-        val database = FirebaseDatabase.getInstance().reference
-        val node = if (userType == "supplier") "suppliers" else "consumers"
+        val collection = if (userType == "supplier") "suppliers" else "consumers"
 
-        database.child(node).child(userId).addListenerForSingleValueEvent(object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                if (snapshot.exists()) {
+        firestore.collection(collection).document(userId).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
                     if (userType == "supplier") {
-                        val supplier = snapshot.getValue(UserSupplier::class.java)
-                        if (_supplierDetails.value != supplier) { // Only update if data changes
-                            _supplierDetails.value = supplier
-                        }
+                        val supplier = document.toObject(UserSupplier::class.java)
+                        // This updates the StateFlow, which is what the UI will observe
+                        _supplierDetails.value = supplier
                     } else {
-                        val consumer = snapshot.getValue(UserConsumer::class.java)
-                        if (_consumerDetails.value != consumer) { // Only update if data changes
-                            _consumerDetails.value = consumer
-                        }
+                        val consumer = document.toObject(UserConsumer::class.java)
+                        // This updates the StateFlow, which is what the UI will observe
+                        _consumerDetails.value = consumer
                     }
                 }
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                println("Error fetching profile details: ${error.message}")
+            .addOnFailureListener {
+                println("Error fetching profile details: ${it.message}")
             }
-        })
     }
-
 
     private fun validateFormData(formData: Map<String, String>): String? {
         if (formData["firstName"].isNullOrEmpty()) return "First name is required."

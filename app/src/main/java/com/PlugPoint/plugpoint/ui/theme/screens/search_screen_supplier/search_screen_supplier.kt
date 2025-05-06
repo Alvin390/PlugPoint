@@ -23,7 +23,10 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
@@ -83,7 +86,6 @@ fun Search_supply_screen(navController: NavController, userId: String, viewModel
         topBar = {
             SearchBarUI(searchText) { query ->
                 searchText = query
-                viewModel.searchUsers(query)
             }
         },
         bottomBar = { SupplierBottomNavBar(navController, userId) } // Pass userId here
@@ -113,6 +115,8 @@ fun Search_supply_screen(navController: NavController, userId: String, viewModel
 
 @Composable
 fun SearchBarUI(searchText: String, onSearch: (String) -> Unit) {
+    var searchQuery by remember { mutableStateOf("") }
+    val authViewModel: SearchSupplierAuthViewModel = viewModel()
     Box(
         modifier = Modifier
             .padding(WindowInsets.statusBars.asPaddingValues())
@@ -121,8 +125,11 @@ fun SearchBarUI(searchText: String, onSearch: (String) -> Unit) {
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         OutlinedTextField(
-            value = searchText, // Use String directly
-            onValueChange = { onSearch(it) }, // Pass the updated string
+            value = searchQuery, // Use String directly
+            onValueChange = {
+                searchQuery = it
+                authViewModel.searchUsers(it) // <--- This is crucial
+            }, // Pass the updated string
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),

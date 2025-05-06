@@ -40,11 +40,11 @@ fun AppNavHost(
         }
         composable("$ROUTE_PROFILE_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SupplierProfileScreen(navController, viewModel = AuthViewModel(), userId = userId)
+            SupplierProfileScreen(navController, authViewModel = AuthViewModel(), userId = userId)
         }
         composable("$ROUTE_PROFILE_CONSUMER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ConsumerProfileScreen(navController, viewModel = AuthViewModel(), userId = userId)
+            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(), userId = userId)
         }
         composable(ROUTE_NOTIFICATION) {
             NotificationScreen(navController)

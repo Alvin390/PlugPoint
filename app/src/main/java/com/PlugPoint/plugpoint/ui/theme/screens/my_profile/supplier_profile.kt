@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.R
@@ -43,11 +44,14 @@ import kotlin.sequences.ifEmpty
 import kotlin.text.category
 
 @Composable
-fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel, userId: String) {
-    val userSupplier by viewModel.supplierDetails.collectAsState()
+fun SupplierProfileScreen(navController: NavController,
+                          authViewModel: AuthViewModel= viewModel(),
+                          userId: String) {
+    val userSupplier by authViewModel.supplierDetails.collectAsState()
 
+    authViewModel.fetchProfileDetails(userId, "supplier")
     LaunchedEffect(userId) {
-        viewModel.fetchProfileDetails(userId, "supplier")
+        authViewModel.fetchProfileDetails(userId, "supplier")
     }
 
     LaunchedEffect(Unit) {
@@ -55,7 +59,7 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
     }
 
     LaunchedEffect(userId) {
-        viewModel.fetchProfileDetails(userId, "supplier")
+        authViewModel.fetchProfileDetails(userId, "supplier")
         println("Fetching profile details for userId: $userId")
     }
 
@@ -66,6 +70,7 @@ fun SupplierProfileScreen(navController: NavController, viewModel: AuthViewModel
         println("UserSupplier is null, showing Loading...")
         CircularProgressIndicator()
     }
+
     Scaffold(
         topBar = { SupplierTopBar() },
         bottomBar = { SupplierBottomNavBar(navController, userId) }
@@ -148,13 +153,45 @@ fun ProfileDetails(userSupplier: UserSupplier) {
                 .background(Color.White)
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(name, fontWeight = FontWeight.Bold)
-            Text(company)
-            Text(category)
-            Text(county)
-            Text("Supplier", color = Color.Gray)
+        Column(
+            modifier = Modifier.weight(1f) // Allow text column to take available space
+        ) {
+            // Display Name with larger font and strong emphasis
+            Text(
+                text = name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp, // Larger font size for name
+                color = Color.Black // Ensure good contrast
+            )
 
+            Spacer(modifier = Modifier.height(4.dp)) // Add some vertical space
+
+            // Use smaller text for secondary details and add labels
+            Text(
+                text = "Company: $company",
+                fontSize = 14.sp,
+                color = Color.DarkGray // Slightly less prominent color
+            )
+            Text(
+                text = "Category: $category",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+            Text(
+                text = "County: $county",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+
+            Spacer(modifier = Modifier.height(8.dp)) // Add more vertical space
+
+            // Display user type with a distinct style or color
+            Text(
+                text = "Supplier",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.primary, // Use your theme's primary color
+                fontWeight = FontWeight.Medium // Make it slightly bold
+            )
         }
     }
 }
@@ -270,8 +307,8 @@ fun FeatureCard(
     }
 }
 
-@Preview
-@Composable
-private fun supplier_profile_preview() {
-    SupplierProfileScreen(rememberNavController(), viewModel = AuthViewModel(), userId = "userId")
-}
+//@Preview
+//@Composable
+//private fun supplier_profile_preview() {
+//    SupplierProfileScreen(rememberNavController(), viewModel = AuthViewModel(), userId = "userId")
+//}

@@ -50,6 +50,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +69,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
@@ -82,18 +84,23 @@ import okhttp3.internal.userAgent
 
 
 @Composable
-fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityViewModel, userId: String) {
+fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityViewModel= viewModel(), userId: String) {
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-    val commodities = remember { mutableStateListOf<Commodity>() }
+    val commodities by viewModel.commodities.collectAsState()
     var showActionDialog by remember { mutableStateOf(false) }
     var selectedCommodity by remember { mutableStateOf<Commodity?>(null) }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    val userId = userId // Replace with actual user ID
+    LaunchedEffect(userId) {
+        viewModel.fetchCommoditiesFromFirestore(userId)
+    }
+
     // Update `SupplierCommodityScreen`
     LaunchedEffect(Unit) {
-        viewModel.fetchCommoditiesFromFirebase(
+        viewModel.fetchCommoditiesFromFirestore(
             userId = userId, // Replace with actual user ID
             onSuccess = { fetchedCommodities ->
                 commodities.clear()
@@ -224,21 +231,19 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
                     }
                 }
             }
+
             if (showDialog) {
                 PostCommodityDialog(
                     onDismiss = { showDialog = false },
                     onPost = { commodity ->
                         if (isEditing) {
-                            // Update the commodity in the database
-                            viewModel.addCommodityToFirebase(
+                            // Update logic: ViewModel's update function should update the StateFlow on success
+                            viewModel.updateCommodityInFirestore(
                                 commodity = commodity,
-                                userId = userId, // Replace with actual user ID
+                                // ... other parameters
                                 onSuccess = {
-                                    val index = commodities.indexOfFirst { it.id == commodity.id }
-                                    if (index != -1) {
-                                        commodities[index] = commodity // Update the local list
-                                    }
                                     snackbarMessage = "Commodity updated successfully!"
+                                    viewModel.fetchCommoditiesFromFirestore(userId) // Refetch or update list in ViewModel
                                 },
                                 onFailure = { exception ->
                                     snackbarMessage = "Error updating commodity: ${exception.message}"
@@ -246,12 +251,12 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
                             )
                         } else {
                             // Add a new commodity
-                            commodities.add(commodity)
-                            viewModel.addCommodityToFirebase(
+                            viewModel.addCommodityToFirestore(
                                 commodity = commodity,
-                                userId = userId, // Replace with actual user ID
+                                userId = userId,
                                 onSuccess = {
                                     snackbarMessage = "Commodity posted successfully!"
+                                    // ViewModel's add function should already update the StateFlow
                                 },
                                 onFailure = { exception ->
                                     snackbarMessage = "Error: ${exception.message}"
@@ -290,7 +295,7 @@ fun SupplierCommodityScreen(navController: NavController,viewModel: CommodityVie
                     onDelete = {
                         val commodityId = selectedCommodity?.id // Ensure the commodity has a unique ID
                         if (commodityId != null) {
-                            viewModel.deleteCommodityFromFirebase(
+                            viewModel.deleteCommodityFromFirestore(
                                 userId = userId, // Replace with the actual user ID
                                 commodityId = commodityId,
                                 onSuccess = {
