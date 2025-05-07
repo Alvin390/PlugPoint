@@ -6,13 +6,11 @@ import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import android.net.Uri
-import androidx.room.util.copy
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.first
 
 class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
@@ -27,11 +25,13 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
     private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
     val registrationState: StateFlow<RegistrationState> = _registrationState
 
+
     fun registerUser(
         userType: String, // "supplier" or "consumer"
         formData: Map<String, String>, // Key-value pairs of form data
         imageUri: Uri?, // Image URI
-        onNavigateToProfile: (String) -> Unit // Callback for navigation
+        onNavigateToProfile: (String) -> Unit,// Callback for navigation
+        context: android.content.Context
     ) {
         viewModelScope.launch {
             val validationError = validateFormData(formData)
@@ -41,7 +41,7 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
             }
 
             if (imageUri != null) {
-                imgurViewModel.uploadImage(imageUri, "Client-ID YOUR_IMGUR_CLIENT_ID")
+                imgurViewModel.uploadImage(imageUri, context, authorization = "511479d0432ec58")
                 val uploadState = imgurViewModel.uploadState.first()
                 if (uploadState is ImgurUploadState.Success) {
                     val updatedFormData = formData.toMutableMap()

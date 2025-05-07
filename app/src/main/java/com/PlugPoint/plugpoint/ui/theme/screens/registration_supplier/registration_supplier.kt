@@ -364,7 +364,7 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
                 }
                 item {
                     Button(
-                        onClick = { 
+                        onClick = {
                             val formData = mapOf(
                                 "firstName" to firstName,
                                 "lastName" to lastName,
@@ -380,10 +380,12 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
                             viewModel.registerUser(
                                 userType = "supplier",
                                 formData = formData,
-                                imageUri = selectedImageUri // Pass the image URI
-                            ) { profileRoute ->
-                                navController.navigate(profileRoute)
-                            }
+                                imageUri = selectedImageUri,
+                                onNavigateToProfile = { profileRoute ->
+                                    navController.navigate(profileRoute)
+                                },
+                                context = context // Pass the context here
+                            )
                         },
                         modifier = Modifier
                             .fillMaxWidth()

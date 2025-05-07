@@ -1,7 +1,3 @@
-package com.PlugPoint.plugpoint.navigation
-
-import CommodityViewModel
-import SearchScreenSupplier
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -9,8 +5,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.PlugPoint.plugpoint.data.AuthViewModel
-import com.PlugPoint.plugpoint.data.CommodityViewModel
+import com.PlugPoint.plugpoint.data.DarkModeViewModel
+import com.PlugPoint.plugpoint.data.ImgurViewModel
 import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
+import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
+import com.PlugPoint.plugpoint.navigation.ROUTE_LOGIN
+import com.PlugPoint.plugpoint.navigation.ROUTE_NOTIFICATION
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_REGISTRATION_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_REGISTRATION_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_ROLES
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
+import com.PlugPoint.plugpoint.navigation.ROUTE_SPLASH
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier.SupplierCommodityScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerProfileScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.login.LoginScreen
@@ -27,25 +36,27 @@ import com.PlugPoint.plugpoint.ui.theme.screens.splashscreen.SplashScreen
 fun AppNavHost(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
-    startDestination: String = ROUTE_LOGIN
+    startDestination: String = ROUTE_LOGIN,
+    imgurViewModel: ImgurViewModel,
+    darkModeViewModel: DarkModeViewModel// Add this parameter
 ) {
     NavHost(navController = navController, modifier = modifier, startDestination = startDestination) {
         composable(ROUTE_LOGIN) {
-            LoginScreen(navController, viewModel = AuthViewModel())
+            LoginScreen(navController, viewModel = AuthViewModel(imgurViewModel))
         }
         composable(ROUTE_REGISTRATION_SUPPLIER) {
-            RegistrationSupplierScreen(navController, viewModel = AuthViewModel())
+            RegistrationSupplierScreen(navController, viewModel = AuthViewModel(imgurViewModel))
         }
         composable(ROUTE_REGISTRATION_CONSUMER) {
-            RegistrationConsumerScreen(navController, viewModel = AuthViewModel())
+            RegistrationConsumerScreen(navController, viewModel = AuthViewModel(imgurViewModel))
         }
         composable("$ROUTE_PROFILE_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SupplierProfileScreen(navController, authViewModel = AuthViewModel(), userId = userId)
+            SupplierProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
         }
         composable("$ROUTE_PROFILE_CONSUMER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(), userId = userId)
+            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
         }
         composable(ROUTE_NOTIFICATION) {
             NotificationScreen(navController)
@@ -62,20 +73,14 @@ fun AppNavHost(
             SearchConsumerScreen(navController, viewModel = SearchSupplierAuthViewModel())
         }
         composable(ROUTE_SETTINGS) {
-            SettingsScreen(navController)
+            SettingsScreen(navController, darkModeViewModel = darkModeViewModel)
         }
         composable(ROUTE_SPLASH) {
             SplashScreen(navController)
         }
         composable("$ROUTE_COMMODITY_LIST/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SupplierCommodityScreen(navController, viewModel = CommodityViewModel(), userId = userId)
+            SupplierCommodityScreen(navController, viewModel = CommodityViewModel(imgurViewModel), userId = userId)
         }
-//        composable  (ROUTE_EDIT_PROFILE_SUPPLIER) {
-//            EditProfileSupplierScreen()
-//        }
-//        composable  (ROUTE_EDIT_PROFILE_CONSUMER) {
-//            EditProfileConsumerScreen()
-//        }
     }
 }

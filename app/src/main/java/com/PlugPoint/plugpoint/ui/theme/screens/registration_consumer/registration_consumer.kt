@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -39,6 +40,7 @@ import com.PlugPoint.plugpoint.ui.theme.*
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthViewModel) {
+    val context = LocalContext.current
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     // Initialize the image picker launcher
@@ -304,7 +306,7 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
                 item {
                     // Register Button
                     Button(
-                        onClick = { 
+                        onClick = {
                             val formData = mapOf(
                                 "firstName" to firstName,
                                 "lastName" to lastName,
@@ -316,13 +318,18 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
                                 "confirmPassword" to confirmPassword
                             )
 
+                            // Move LocalContext.current inside the @Composable scope
+
+
                             viewModel.registerUser(
                                 userType = "consumer",
                                 formData = formData,
-                                imageUri = selectedImageUri // Pass the image URI
-                            ) { profileRoute ->
-                                navController.navigate(profileRoute)
-                            }
+                                imageUri = selectedImageUri,
+                                context = context, // Pass the context
+                                onNavigateToProfile = { profileRoute ->
+                                    navController.navigate(profileRoute) // Handle navigation
+                                }
+                            )
                         },
                         modifier = Modifier
                             .fillMaxWidth()

@@ -52,6 +52,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
 //    implementation(libs.coil.compose)
     implementation("io.coil-kt.coil3:coil-compose:3.1.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
@@ -67,6 +69,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.room.runtime.android)
     testImplementation(libs.junit)
+    implementation (libs.androidx.datastore.preferences)
 
 //    implementation(libs.coil.kt.coil.compose)
     implementation(libs.androidx.navigation.compose)

@@ -2,11 +2,8 @@ package com.PlugPoint.plugpoint.data
 
 
 
-import android.annotation.SuppressLint
+import android.content.Context
 import android.net.Uri
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.networks.ImgurAPI
@@ -24,11 +21,8 @@ class ImgurViewModel(private val imgurAPI: ImgurAPI) : ViewModel() {
     private val _uploadState = MutableStateFlow<ImgurUploadState>(ImgurUploadState.Idle)
     val uploadState: StateFlow<ImgurUploadState> get() = _uploadState
 
-    @SuppressLint("CoroutineCreationDuringComposition")
-    @Composable
-    fun uploadImage(uri: Uri, authorization: String) {
+    fun uploadImage(uri: Uri?, context: Context, authorization: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            var context=LocalContext.current
             try {
                 _uploadState.value = ImgurUploadState.Loading
                 val file = ImgurUtils.getFileFromUri(uri, context)

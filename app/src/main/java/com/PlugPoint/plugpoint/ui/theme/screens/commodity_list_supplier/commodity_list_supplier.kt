@@ -63,6 +63,8 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -85,6 +87,7 @@ import okhttp3.internal.userAgent
 
 @Composable
 fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityViewModel= viewModel(), userId: String) {
+    val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
     val commodities = remember { mutableStateListOf<Commodity>() }
@@ -107,6 +110,7 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
 
     @Composable
     fun SupplierTopBarCommodity(onAddClick: () -> Unit) {
+
         val gradientColors = listOf(
             Color(0xFFFFA500), // orange
             Color(0xFFFF8C00), // darkOrange
@@ -183,7 +187,10 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
                                 androidx.compose.foundation.Image(
                                     painter = rememberAsyncImagePainter(commodity.imageUri),
                                     contentDescription = "Commodity Image",
-                                    modifier = Modifier.clip(CircleShape),
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop,
                                     colorFilter = if (commodity.booked) androidx.compose.ui.graphics.ColorFilter.tint(
                                         Color.Gray
                                     ) else null
@@ -245,12 +252,13 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
                                 commodity = commodity,
                                 userId = userId,
                                 onSuccess = {
-                                    snackbarMessage = "Commodity posted successfully!"
-                                    // ViewModel's add function should already update the StateFlow
+                                    snackbarMessage = "Commodity added successfully!"
                                 },
                                 onFailure = { exception ->
-                                    snackbarMessage = "Error: ${exception.message}"
-                                }
+                                    snackbarMessage = "Error adding commodity: ${exception.message}"
+                                },
+                                imageUri = commodity.imageUri?.let { Uri.parse(it) },
+                                context = context
                             )
                         }
                         showDialog = false
@@ -399,7 +407,10 @@ fun PostCommodityDialog(
                         androidx.compose.foundation.Image(
                             painter = rememberAsyncImagePainter(imageUri),
                             contentDescription = "Selected Image",
-                            modifier = Modifier.clip(CircleShape)
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop,
                         )
                     } else {
                         Text("No Image", color = Color.White)

@@ -1,5 +1,7 @@
 package com.PlugPoint.plugpoint.models
 
+import retrofit2.http.Url
+
 data class UserSupplier(
     var firstName: String = "",
     var lastName: String = "",
@@ -10,5 +12,6 @@ data class UserSupplier(
     var email: String = "",
     var password: String = "",
     var confirmPassword: String = "",
-    var imageUri: String? = null // Field to store the image URI
+    val imageUrl: String="",
+    var imageUri: String? = null
 )

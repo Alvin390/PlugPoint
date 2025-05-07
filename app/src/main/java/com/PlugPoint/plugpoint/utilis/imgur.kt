@@ -7,7 +7,7 @@ import java.io.FileOutputStream
 
 object ImgurUtils {
 
-    fun getFileFromUri(uri: Uri, context: Context): File {
+    fun getFileFromUri(uri: Uri?, context: Context): File {
         val inputStream = context.contentResolver.openInputStream(uri)
         val tempFile = File.createTempFile("temp_image", ".jpg", context.cacheDir)
         val outputStream = FileOutputStream(tempFile)

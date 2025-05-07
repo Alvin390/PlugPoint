@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint
 
+import AppNavHost
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,8 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHost
-import com.PlugPoint.plugpoint.navigation.AppNavHost
+import com.PlugPoint.plugpoint.data.DarkModeViewModel
 import com.PlugPoint.plugpoint.ui.theme.PlugPointTheme
 
 class MainActivity : ComponentActivity() {
@@ -21,8 +23,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PlugPointTheme {
+                val darkModeViewModel: DarkModeViewModel = viewModel(
+                    factory = DarkModeViewModelFactory(applicationContext)
+                )
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AppNavHost()
+                    AppNavHost(
+                        darkModeViewModel = darkModeViewModel,
+                        imgurViewModel = viewModel()
+                    )
                 }
             }
         }
