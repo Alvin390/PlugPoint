@@ -41,6 +41,7 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
 import com.PlugPoint.plugpoint.ui.theme.tomato
 import kotlin.sequences.ifEmpty
 import kotlin.text.category
@@ -123,7 +124,7 @@ fun SupplierProfileScreen(navController: NavController,
                                 "Accepted Applications" -> { /* Add navigation or logic here */ }
                                 "All Applications" -> { /* Add navigation or logic here */ }
                                 "Edit Profile" -> { /* Add navigation or logic here */ }
-                                "Settings" -> { /* Add navigation or logic here */ }
+                                "Settings" -> { ROUTE_SETTINGS }
                                 "Logout" -> { /* Add logout logic here */ }
                             }
                         }

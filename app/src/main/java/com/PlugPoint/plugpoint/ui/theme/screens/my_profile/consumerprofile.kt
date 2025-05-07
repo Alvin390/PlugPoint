@@ -45,6 +45,7 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
+import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
 import kotlin.text.category
 import kotlin.text.ifEmpty
 
@@ -93,7 +94,7 @@ fun ConsumerProfileScreen(navController: NavController,
                         Triple("Accepted Applications", R.drawable.acceptedapplications, ROUTE_NOTIFICATION),
                         Triple("Saved Suppliers", R.drawable.savedsuppliersconsumer, ROUTE_SEARCH_CONSUMER),
                         Triple("Edit Profile", R.drawable.editprofileconsumer, ROUTE_PROFILE_CONSUMER),
-                        Triple("Settings", R.drawable.settingsconsumer, ROUTE_SEARCH_SUPPLIER),
+                        Triple("Settings", R.drawable.settingsconsumer, ROUTE_SETTINGS),
                         Triple("Logout", R.drawable.logoutsupply, ROUTE_PROFILE_SUPPLIER)
                     )
                 ) { (title, imageRes, route) ->
