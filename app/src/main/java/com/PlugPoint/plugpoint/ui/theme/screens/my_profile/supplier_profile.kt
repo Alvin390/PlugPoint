@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.models.UserSupplier
@@ -137,6 +139,7 @@ fun ProfileDetails(userSupplier: UserSupplier) {
     val county = remember(userSupplier) { userSupplier.county.ifEmpty { "Unknown County" } }
     val category = remember(userSupplier) { userSupplier.category.ifEmpty { "Unknown Category" } }
     val company = remember(userSupplier) { userSupplier.companyName.ifEmpty { "No Company Company" } }
+    val imageUrl = remember(userSupplier) { userSupplier.imageUrl }
 
     Row(
         modifier = Modifier
@@ -145,12 +148,13 @@ fun ProfileDetails(userSupplier: UserSupplier) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = painterResource(id = R.drawable.profile_placeholder),
+            painter = rememberAsyncImagePainter(imageUrl),
             contentDescription = "Profile",
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(Color.White),
+            contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(

@@ -2,8 +2,11 @@ package com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer
 
 
 
+import UserRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
@@ -12,6 +15,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.TextFieldValue
@@ -20,12 +24,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 
 @Composable
-fun SearchConsumerScreen(navController: NavController) {
+fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplierAuthViewModel) {
+    var searchText by remember { mutableStateOf("") }
+    val searchResults by viewModel.searchResults.collectAsState()
+
     Scaffold(
-        topBar = { SearchBarUI() },
+        topBar = {
+            SearchBarUI(searchText) { query ->
+                searchText = query.trim().lowercase() // Normalize query
+                viewModel.searchUsers(searchText) // Trigger search on query change
+            }
+        },
         bottomBar = { ConsumerBottomNavBar(navController) }
     ) { padding ->
         Box(
@@ -33,15 +46,26 @@ fun SearchConsumerScreen(navController: NavController) {
                 .fillMaxSize()
                 .padding(padding)
                 .background(Color.White)
-                .padding(WindowInsets.statusBars.asPaddingValues()) // Add padding for the status bar
-        )
+        ) {
+            if (searchText.isNotEmpty() && searchResults.isEmpty()) {
+                Text(
+                    "No results found",
+                    color = Color.Gray,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(searchResults) { user ->
+                        UserRow(user = user)
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun SearchBarUI() {
-    var searchText by remember { mutableStateOf(TextFieldValue("")) }
-
+fun SearchBarUI(searchText: String, onSearchTextChanged: (String) -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -51,7 +75,7 @@ fun SearchBarUI() {
     ) {
         OutlinedTextField(
             value = searchText,
-            onValueChange = { searchText = it },
+            onValueChange = onSearchTextChanged,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -68,45 +92,9 @@ fun SearchBarUI() {
         )
     }
 }
-//@Composable
-//fun ConsumerBottomNavBarSearch() {
-//    val items = listOf("My Profile", "Search", "Notifications", "Chat")
-//    val icons = listOf(
-//        Icons.Default.Person,
-//        Icons.Default.Search,
-//        Icons.Default.Notifications,
-//        Icons.Default.MailOutline
-//    )
-//    var selectedIndex by remember { mutableStateOf(1) }
-//
-//    NavigationBar(
-//        containerColor = Color(0xFFADD8E6), // lightBlue
-//        contentColor = Color.Black,
-//        tonalElevation = 8.dp
-//    ) {
-//        items.forEachIndexed { index, label ->
-//            NavigationBarItem(
-//                icon = {
-//                    Icon(
-//                        imageVector = icons[index],
-//                        contentDescription = label
-//                    )
-//                },
-//                label = { Text(label, fontSize = 12.sp) },
-//                selected = selectedIndex == index,
-//                onClick = { selectedIndex = index },
-//                colors = NavigationBarItemDefaults.colors(
-//                    selectedIconColor = Color(0xFF1E90FF),
-//                    selectedTextColor = Color(0xFF1E90FF),
-//                    indicatorColor = Color(0xFF87CEFA)
-//                )
-//            )
-//        }
-//    }
-//}
 
 @Preview
 @Composable
 private fun search_consumer_preview() {
-    SearchConsumerScreen(rememberNavController())
+    SearchConsumerScreen(rememberNavController(), SearchSupplierAuthViewModel())
 }

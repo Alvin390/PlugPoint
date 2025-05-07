@@ -5,11 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class SearchSupplierAuthViewModel : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
@@ -17,58 +17,57 @@ class SearchSupplierAuthViewModel : ViewModel() {
     private val _searchResults = MutableStateFlow<List<User>>(emptyList())
     val searchResults: StateFlow<List<User>> = _searchResults
 
-    private var searchJob: Job? = null
-
     sealed class User {
         data class Supplier(val user: UserSupplier) : User()
         data class Consumer(val user: UserConsumer) : User()
     }
 
-    fun searchUsers(query: String) {
-        searchJob?.cancel() // Cancel any ongoing search
-        searchJob = viewModelScope.launch {
-            delay(300) // Debounce for 300ms
-            val results = mutableListOf<User>()
+    fun searchUsers(query: String, onError: (String) -> Unit = {}) {
+        val normalizedQuery = query.trim().lowercase() // Normalize the query
 
-            // Search suppliers
-            firestore.collection("suppliers")
-                .whereGreaterThanOrEqualTo("searchableField", query)
-                .whereLessThanOrEqualTo("searchableField", query + "\uf8ff")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    snapshot.documents.forEach { document ->
-                        val supplier = document.toObject(UserSupplier::class.java)
-                        if (supplier != null) {
-                            results.add(User.Supplier(supplier))
-                            println("Supplier found: ${supplier.firstName} ${supplier.lastName}")
+        viewModelScope.launch {
+            try {
+                val suppliersDeferred = async {
+                    firestore.collection("suppliers")
+                        .whereGreaterThanOrEqualTo("searchableField", normalizedQuery)
+                        .whereLessThanOrEqualTo("searchableField", "$normalizedQuery\uf8ff")
+                        .get()
+                        .await()
+                        .documents.mapNotNull { document ->
+                            document.toObject(UserSupplier::class.java)?.let { user ->
+                                user.imageUri = extractImgurId(user.imageUri) // Ensure Imgur ID
+                                User.Supplier(user)
+                            }
                         }
-                    }
-                    _searchResults.value = results
-                    println("Total suppliers found: ${results.size}")
-                }
-                .addOnFailureListener { exception ->
-                    println("Error fetching suppliers: ${exception.message}")
                 }
 
-            // Search consumers
-            firestore.collection("consumers")
-                .whereGreaterThanOrEqualTo("searchableField", query)
-                .whereLessThanOrEqualTo("searchableField", query + "\uf8ff")
-                .get()
-                .addOnSuccessListener { snapshot ->
-                    snapshot.documents.forEach { document ->
-                        val consumer = document.toObject(UserConsumer::class.java)
-                        if (consumer != null) {
-                            results.add(User.Consumer(consumer))
-                            println("Consumer found: ${consumer.firstName} ${consumer.lastName}")
+                val consumersDeferred = async {
+                    firestore.collection("consumers")
+                        .whereGreaterThanOrEqualTo("searchableField", normalizedQuery)
+                        .whereLessThanOrEqualTo("searchableField", "$normalizedQuery\uf8ff")
+                        .get()
+                        .await()
+                        .documents.mapNotNull { document ->
+                            document.toObject(UserConsumer::class.java)?.let { user ->
+                                user.imageUri = extractImgurId(user.imageUri) // Ensure Imgur ID
+                                User.Consumer(user)
+                            }
                         }
-                    }
-                    _searchResults.value = results
-                    println("Total consumers found: ${results.size}")
                 }
-                .addOnFailureListener { exception ->
-                    println("Error fetching consumers: ${exception.message}")
-                }
+
+                val suppliers = suppliersDeferred.await()
+                val consumers = consumersDeferred.await()
+
+                _searchResults.value = suppliers + consumers // Combine results
+            } catch (exception: Exception) {
+                onError("Error fetching search results: ${exception.message}")
+                _searchResults.value = emptyList() // Clear results on error
+            }
         }
+    }
+
+    // Helper function to extract Imgur ID from a URL
+    private fun extractImgurId(imageUri: String?): String? {
+        return imageUri?.substringAfterLast("/")?.substringBefore(".")
     }
 }

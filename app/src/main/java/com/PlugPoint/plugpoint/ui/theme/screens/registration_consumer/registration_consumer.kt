@@ -304,23 +304,26 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
                 item {
                     // Register Button
                     Button(
-                        onClick = {    val formData = mapOf(
-                            "firstName" to firstName,
-                            "lastName" to lastName,
-                            "idNumber" to idNumber,
-                            "county" to county,
-                            "category" to category,
-                            "email" to email,
-                            "password" to password,
-                            "confirmPassword" to confirmPassword
-                        )
+                        onClick = { 
+                            val formData = mapOf(
+                                "firstName" to firstName,
+                                "lastName" to lastName,
+                                "idNumber" to idNumber,
+                                "county" to county,
+                                "category" to category,
+                                "email" to email,
+                                "password" to password,
+                                "confirmPassword" to confirmPassword
+                            )
 
                             viewModel.registerUser(
                                 userType = "consumer",
-                                formData = formData
+                                formData = formData,
+                                imageUri = selectedImageUri // Pass the image URI
                             ) { profileRoute ->
                                 navController.navigate(profileRoute)
-                            } },
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -381,8 +384,8 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
     }
 }
 
-@Preview
-@Composable
-private fun ConsumerRegisterPreview() {
-    RegistrationConsumerScreen(rememberNavController(),viewModel = AuthViewModel())
-}
+//@Preview
+//@Composable
+//private fun ConsumerRegisterPreview() {
+//    RegistrationConsumerScreen(rememberNavController(),viewModel = AuthViewModel())
+//}

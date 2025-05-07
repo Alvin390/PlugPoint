@@ -1,43 +1,63 @@
-package com.PlugPoint.plugpoint.data
-
+import com.PlugPoint.plugpoint.data.ImgurUploadState
 import com.PlugPoint.plugpoint.models.Commodity
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.PlugPoint.plugpoint.data.ImgurViewModel
+import kotlinx.coroutines.flow.first
 
-class CommodityViewModel {
+class CommodityViewModel(private val imgurViewModel: ImgurViewModel) {
     private val firestore = FirebaseFirestore.getInstance()
+    private val _commodities = MutableStateFlow<List<Commodity>>(emptyList())
+    val commodities: StateFlow<List<Commodity>> get() = _commodities
 
     fun addCommodityToFirestore(
         commodity: Commodity,
-        userId: String, // Ensure this is the supplier's userId
+        userId: String,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val userCommoditiesRef = firestore.collection("suppliers").document(userId).collection("commodities")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Upload image to Imgur
+                val imgurResponse = imgurViewModel.uploadImage(commodity.imageUri!!).first()
+                if (imgurResponse is ImgurUploadState.Success) {
+                    commodity.imageUri = imgurResponse.imageUrl // Update commodity with Imgur URL
 
-        val commodityId = userCommoditiesRef.document().id // Generate a unique ID for the commodity
-        commodity.id = commodityId // Set the ID in the commodity object
-        userCommoditiesRef.document(commodityId).set(commodity)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { exception -> onFailure(exception) }
+                    // Save commodity to Firestore
+                    val userCommoditiesRef = firestore.collection("suppliers").document(userId).collection("commodities")
+                    val commodityId = userCommoditiesRef.document().id
+                    commodity.id = commodityId
+                    userCommoditiesRef.document(commodityId).set(commodity).await()
+
+                    fetchCommoditiesFromFirestore(userId) // Refresh the list after adding
+                    onSuccess()
+                } else {
+                    throw Exception("Image upload failed")
+                }
+            } catch (exception: Exception) {
+                onFailure(exception)
+            }
+        }
     }
 
-    fun fetchCommoditiesFromFirestore(
-        userId: String, // Ensure this is the logged-in supplier's userId
-        onSuccess: (List<Commodity>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        val userCommoditiesRef = firestore.collection("suppliers").document(userId).collection("commodities")
-
-        userCommoditiesRef.get()
-            .addOnSuccessListener { snapshot ->
+    fun fetchCommoditiesFromFirestore(userId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val snapshot = firestore.collection("suppliers").document(userId).collection("commodities").get().await()
                 val commodities = snapshot.documents.mapNotNull { document ->
                     document.toObject(Commodity::class.java)?.apply { id = document.id }
                 }
-                onSuccess(commodities)
+                _commodities.update { commodities }
+            } catch (exception: Exception) {
+                // Handle error if needed
             }
-            .addOnFailureListener { exception ->
-                onFailure(exception)
-            }
+        }
     }
 
     fun deleteCommodityFromFirestore(
@@ -47,9 +67,27 @@ class CommodityViewModel {
         onFailure: (Exception) -> Unit
     ) {
         val commodityRef = firestore.collection("suppliers").document(userId).collection("commodities").document(commodityId)
-
         commodityRef.delete()
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener {
+                fetchCommoditiesFromFirestore(userId) // Refresh the list after deletion
+                onSuccess()
+            }
             .addOnFailureListener { exception -> onFailure(exception) }
+    }
+
+    fun updateCommodityInFirestore(
+        userId: String,
+        commodityId: String,
+        updatedCommodity: Commodity,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val commodityRef = firestore.collection("suppliers").document(userId).collection("commodities").document(commodityId)
+        commodityRef.set(updatedCommodity)
+            .addOnSuccessListener {
+                fetchCommoditiesFromFirestore(userId) // Refresh the list after updating
+                onSuccess()
+            }
+            .addOnFailureListener { onFailure }
     }
 }

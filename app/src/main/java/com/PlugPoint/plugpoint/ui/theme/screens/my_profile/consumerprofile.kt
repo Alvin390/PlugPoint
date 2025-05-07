@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.models.UserConsumer
@@ -134,6 +136,7 @@ fun ProfileDetails(userConsumer: UserConsumer) {
     val county = userConsumer.county
     val category = userConsumer.category
     val userType = "Consumer" // Assuming this Composable is specifically for consumers
+    val imageUrl = userConsumer.imageUrl
 
     Row(
         modifier = Modifier
@@ -143,12 +146,13 @@ fun ProfileDetails(userConsumer: UserConsumer) {
         horizontalArrangement = Arrangement.Start
     ) {
         Image(
-            painter = painterResource(id = R.drawable.profile_placeholder),
+            painter = rememberAsyncImagePainter(imageUrl),
             contentDescription = "Profile",
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
-                .background(Color.White)
+                .background(Color.White),
+            contentScale = ContentScale.Crop
         )
         Spacer(modifier = Modifier.width(16.dp))
         Column(
@@ -274,3 +278,4 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavCon
 //private fun consumer_profile_preview() {
 //    ConsumerProfileScreen(rememberNavController(),userId = "sampleUserId",viewModel = AuthViewModel())
 //}
+

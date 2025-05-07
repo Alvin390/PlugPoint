@@ -256,8 +256,8 @@ fun GradientButton(
     }
 }
 
-@Preview
-@Composable
-private fun LoginScreenPreview() {
-    LoginScreen(rememberNavController(), viewModel = AuthViewModel())
-}
+//@Preview
+//@Composable
+//private fun LoginScreenPreview() {
+//    LoginScreen(rememberNavController(), viewModel = AuthViewModel())
+//}

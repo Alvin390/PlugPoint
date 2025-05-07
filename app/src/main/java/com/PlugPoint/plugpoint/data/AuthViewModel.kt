@@ -11,8 +11,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import android.net.Uri
+import androidx.room.util.copy
+import kotlinx.coroutines.flow.first
 
-class AuthViewModel : ViewModel() {
+class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
 
     private val _supplierDetails = MutableStateFlow<UserSupplier?>(null)
@@ -27,6 +30,7 @@ class AuthViewModel : ViewModel() {
     fun registerUser(
         userType: String, // "supplier" or "consumer"
         formData: Map<String, String>, // Key-value pairs of form data
+        imageUri: Uri?, // Image URI
         onNavigateToProfile: (String) -> Unit // Callback for navigation
     ) {
         viewModelScope.launch {
@@ -36,22 +40,43 @@ class AuthViewModel : ViewModel() {
                 return@launch
             }
 
-            val collection = if (userType == "supplier") "suppliers" else "consumers"
+            if (imageUri != null) {
+                imgurViewModel.uploadImage(imageUri, "Client-ID YOUR_IMGUR_CLIENT_ID")
+                val uploadState = imgurViewModel.uploadState.first()
+                if (uploadState is ImgurUploadState.Success) {
+                    val updatedFormData = formData.toMutableMap()
+                    updatedFormData["imageUrl"] = uploadState.imageUrl
 
-            firestore.collection(collection).add(formData)
-                .addOnSuccessListener { documentReference ->
-                    _registrationState.value = RegistrationState.Success(userType)
-                    val profileRoute = if (userType == "supplier") {
-                        "$ROUTE_PROFILE_SUPPLIER/${documentReference.id}"
-                    } else {
-                        "$ROUTE_PROFILE_CONSUMER/${documentReference.id}"
-                    }
-                    onNavigateToProfile(profileRoute)
+                    saveUserData(userType, updatedFormData, onNavigateToProfile)
+                } else if (uploadState is ImgurUploadState.Error) {
+                    _registrationState.value = RegistrationState.Failure(uploadState.message)
                 }
-                .addOnFailureListener { exception ->
-                    _registrationState.value = RegistrationState.Failure(exception.message ?: "An unknown error occurred.")
-                }
+            } else {
+                saveUserData(userType, formData, onNavigateToProfile)
+            }
         }
+    }
+
+    private fun saveUserData(
+        userType: String,
+        formData: Map<String, String>,
+        onNavigateToProfile: (String) -> Unit
+    ) {
+        val collection = if (userType == "supplier") "suppliers" else "consumers"
+
+        firestore.collection(collection).add(formData)
+            .addOnSuccessListener { documentReference ->
+                _registrationState.value = RegistrationState.Success(userType)
+                val profileRoute = if (userType == "supplier") {
+                    "$ROUTE_PROFILE_SUPPLIER/${documentReference.id}"
+                } else {
+                    "$ROUTE_PROFILE_CONSUMER/${documentReference.id}"
+                }
+                onNavigateToProfile(profileRoute)
+            }
+            .addOnFailureListener { exception ->
+                _registrationState.value = RegistrationState.Failure(exception.message ?: "An unknown error occurred.")
+            }
     }
 
     fun loginUser(
@@ -108,12 +133,14 @@ class AuthViewModel : ViewModel() {
             .addOnSuccessListener { document ->
                 if (document.exists()) {
                     if (userType == "supplier") {
-                        val supplier = document.toObject(UserSupplier::class.java)
-                        // This updates the StateFlow, which is what the UI will observe
+                        val supplier = document.toObject(UserSupplier::class.java)?.copy(
+                            imageUrl = document.getString("imageUrl") ?: ""
+                        )
                         _supplierDetails.value = supplier
                     } else {
-                        val consumer = document.toObject(UserConsumer::class.java)
-                        // This updates the StateFlow, which is what the UI will observe
+                        val consumer = document.toObject(UserConsumer::class.java)?.copy(
+                            imageUrl = document.getString("imageUrl") ?: ""
+                        )
                         _consumerDetails.value = consumer
                     }
                 }

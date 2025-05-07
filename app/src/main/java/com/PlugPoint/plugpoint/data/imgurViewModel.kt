@@ -1,0 +1,56 @@
+package com.PlugPoint.plugpoint.data
+
+
+
+import android.annotation.SuppressLint
+import android.net.Uri
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.PlugPoint.plugpoint.networks.ImgurAPI
+import com.PlugPoint.plugpoint.utilis.ImgurUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+
+class ImgurViewModel(private val imgurAPI: ImgurAPI) : ViewModel() {
+
+    private val _uploadState = MutableStateFlow<ImgurUploadState>(ImgurUploadState.Idle)
+    val uploadState: StateFlow<ImgurUploadState> get() = _uploadState
+
+    @SuppressLint("CoroutineCreationDuringComposition")
+    @Composable
+    fun uploadImage(uri: Uri, authorization: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            var context=LocalContext.current
+            try {
+                _uploadState.value = ImgurUploadState.Loading
+                val file = ImgurUtils.getFileFromUri(uri, context)
+                val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+                val multipartBody = MultipartBody.Part.createFormData("image", file.name, requestBody)
+
+                val response = imgurAPI.uploadImage(authorization, multipartBody)
+                if (response.isSuccessful && response.body()?.success == true) {
+                    _uploadState.value = ImgurUploadState.Success(response.body()!!.data.link)
+                } else {
+                    _uploadState.value = ImgurUploadState.Error("Failed to upload image: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                _uploadState.value = ImgurUploadState.Error("Error: ${e.message}")
+            }
+        }
+    }
+}
+
+sealed class ImgurUploadState {
+    object Idle : ImgurUploadState()
+    object Loading : ImgurUploadState()
+    data class Success(val imageUrl: String) : ImgurUploadState()
+    data class Error(val message: String) : ImgurUploadState()
+}

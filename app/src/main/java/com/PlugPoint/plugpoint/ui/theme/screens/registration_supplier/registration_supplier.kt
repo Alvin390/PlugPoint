@@ -364,24 +364,27 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
                 }
                 item {
                     Button(
-                        onClick = {     val formData = mapOf(
-                            "firstName" to firstName,
-                            "lastName" to lastName,
-                            "companyName" to companyName,
-                            "idNumber" to idNumber,
-                            "county" to county,
-                            "category" to category,
-                            "email" to email,
-                            "password" to password,
-                            "confirmPassword" to confirmPassword
-                        )
+                        onClick = { 
+                            val formData = mapOf(
+                                "firstName" to firstName,
+                                "lastName" to lastName,
+                                "companyName" to companyName,
+                                "idNumber" to idNumber,
+                                "county" to county,
+                                "category" to category,
+                                "email" to email,
+                                "password" to password,
+                                "confirmPassword" to confirmPassword
+                            )
 
                             viewModel.registerUser(
                                 userType = "supplier",
-                                formData = formData
+                                formData = formData,
+                                imageUri = selectedImageUri // Pass the image URI
                             ) { profileRoute ->
                                 navController.navigate(profileRoute)
-                            } },
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
@@ -395,8 +398,8 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
     }
 }
 
-@Preview
-@Composable
-private fun SupplierRegisterPreview() {
-    RegistrationSupplierScreen(rememberNavController(),viewModel = AuthViewModel())
-}
+//@Preview
+//@Composable
+//private fun SupplierRegisterPreview() {
+//    RegistrationSupplierScreen(rememberNavController(),viewModel = AuthViewModel())
+//}

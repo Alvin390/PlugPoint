@@ -2,6 +2,7 @@ package com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier
 
 
 
+import CommodityViewModel
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -73,7 +74,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil3.compose.rememberAsyncImagePainter
-import com.PlugPoint.plugpoint.data.CommodityViewModel
 import com.PlugPoint.plugpoint.models.Commodity
 import com.PlugPoint.plugpoint.ui.theme.amberBlaze
 import com.PlugPoint.plugpoint.ui.theme.dimGray
@@ -87,7 +87,7 @@ import okhttp3.internal.userAgent
 fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityViewModel= viewModel(), userId: String) {
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-    val commodities by viewModel.commodities.collectAsState()
+    val commodities = remember { mutableStateListOf<Commodity>() }
     var showActionDialog by remember { mutableStateOf(false) }
     var selectedCommodity by remember { mutableStateOf<Commodity?>(null) }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
@@ -102,13 +102,6 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
     LaunchedEffect(Unit) {
         viewModel.fetchCommoditiesFromFirestore(
             userId = userId, // Replace with actual user ID
-            onSuccess = { fetchedCommodities ->
-                commodities.clear()
-                commodities.addAll(fetchedCommodities)
-            },
-            onFailure = { exception ->
-                snackbarMessage = "Error fetching commodities: ${exception.message}"
-            }
         )
     }
 
@@ -239,16 +232,13 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
                         if (isEditing) {
                             // Update logic: ViewModel's update function should update the StateFlow on success
                             viewModel.updateCommodityInFirestore(
-                                commodity = commodity,
-                                // ... other parameters
+                                userId=userId,
+                                commodityId=commodity.id,
+                                updatedCommodity= commodity,
                                 onSuccess = {
                                     snackbarMessage = "Commodity updated successfully!"
-                                    viewModel.fetchCommoditiesFromFirestore(userId) // Refetch or update list in ViewModel
                                 },
-                                onFailure = { exception ->
-                                    snackbarMessage = "Error updating commodity: ${exception.message}"
-                                }
-                            )
+                                onFailure = { exception ->})
                         } else {
                             // Add a new commodity
                             viewModel.addCommodityToFirestore(
@@ -269,51 +259,51 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
                 )
             }
 
-            }
-            snackbarMessage?.let { message ->
-                LaunchedEffect(message) {
-                    snackbarHostState.showSnackbar(message)
-                    snackbarMessage = null
-                }
-            }
-
-            if (showActionDialog && selectedCommodity != null) {
-                ActionDialog(
-                    commodity = selectedCommodity!!,
-                    onBooked = {
-                        val index = commodities.indexOf(selectedCommodity)
-                        if (index != -1) {
-                            commodities[index] = selectedCommodity!!.updateBooked(true) // For non-data class
-                        }
-                        showActionDialog = false
-                    },
-                    onEdit = {
-                        showDialog = true
-                        showActionDialog = false
-                        isEditing= true
-                    },
-                    onDelete = {
-                        val commodityId = selectedCommodity?.id // Ensure the commodity has a unique ID
-                        if (commodityId != null) {
-                            viewModel.deleteCommodityFromFirestore(
-                                userId = userId, // Replace with the actual user ID
-                                commodityId = commodityId,
-                                onSuccess = {
-                                    commodities.remove(selectedCommodity)
-                                    snackbarMessage = "Commodity deleted successfully!"
-                                },
-                                onFailure = { exception ->
-                                    snackbarMessage = "Error deleting commodity: ${exception.message}"
-                                }
-                            )
-                        }
-                        showActionDialog = false
-                    },
-                    onDismiss = { showActionDialog = false }
-                )
+        }
+        snackbarMessage?.let { message ->
+            LaunchedEffect(message) {
+                snackbarHostState.showSnackbar(message)
+                snackbarMessage = null
             }
         }
+
+        if (showActionDialog && selectedCommodity != null) {
+            ActionDialog(
+                commodity = selectedCommodity!!,
+                onBooked = {
+                    val index = commodities.indexOf(selectedCommodity)
+                    if (index != -1) {
+                        commodities.toMutableList()[index] = selectedCommodity!!.updateBooked(true) // For non-data class
+                    }
+                    showActionDialog = false
+                },
+                onEdit = {
+                    showDialog = true
+                    showActionDialog = false
+                    isEditing= true
+                },
+                onDelete = {
+                    val commodityId = selectedCommodity?.id // Ensure the commodity has a unique ID
+                    if (commodityId != null) {
+                        viewModel.deleteCommodityFromFirestore(
+                            userId = userId, // Replace with the actual user ID
+                            commodityId = commodityId,
+                            onSuccess = {
+                                commodities.remove(selectedCommodity)
+                                snackbarMessage = "Commodity deleted successfully!"
+                            },
+                            onFailure = { exception ->
+                                snackbarMessage = "Error deleting commodity: ${exception.message}"
+                            }
+                        )
+                    }
+                    showActionDialog = false
+                },
+                onDismiss = { showActionDialog = false }
+            )
+        }
     }
+}
 @Composable
 fun ActionDialog(
     commodity: Commodity,
@@ -560,11 +550,11 @@ fun PostCommodityDialog(
 //    val booked: Boolean = false
 //)
 
-@Preview
-@Composable
-private fun commodity_screen_prev() {
-    SupplierCommodityScreen(
-        navController = rememberNavController(),
-        viewModel = CommodityViewModel(), userId = "userId"// Provide a mock or default instance
-    )
-}
+//@Preview
+//@Composable
+//private fun commodity_screen_prev() {
+//    SupplierCommodityScreen(
+//        navController = rememberNavController(),
+//        viewModel = CommodityViewModel(), userId = "userId"// Provide a mock or default instance
+//    )
+//}

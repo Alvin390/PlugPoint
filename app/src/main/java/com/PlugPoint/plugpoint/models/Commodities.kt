@@ -26,7 +26,15 @@ class Commodity {
         this.imageUri = imageUri
     }
 
-    constructor()
+    constructor() {
+        this.id = ""
+        this.name = ""
+        this.quantity = ""
+        this.cost = ""
+        this.currency = ""
+        this.imageUri = null
+        this.booked = false
+    }
 
     fun updateBooked(isBooked: Boolean): Commodity {
         this.booked = isBooked

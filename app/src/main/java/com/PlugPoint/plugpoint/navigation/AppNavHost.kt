@@ -1,5 +1,7 @@
 package com.PlugPoint.plugpoint.navigation
 
+import CommodityViewModel
+import SearchScreenSupplier
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -17,7 +19,6 @@ import com.PlugPoint.plugpoint.ui.theme.screens.notifications_screen.Notificatio
 import com.PlugPoint.plugpoint.ui.theme.screens.registration_consumer.RegistrationConsumerScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.registration_supplier.RegistrationSupplierScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.role_screen.RoleSelectionScreen
-import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_supplier.Search_supply_screen
 import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchConsumerScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.settings_screen.SettingsScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.splashscreen.SplashScreen
@@ -54,10 +55,11 @@ fun AppNavHost(
         }
         composable("$ROUTE_SEARCH_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            Search_supply_screen(navController, userId,viewModel = SearchSupplierAuthViewModel())
+            SearchScreenSupplier(navController, viewModel = SearchSupplierAuthViewModel())
         }
-        composable(ROUTE_SEARCH_CONSUMER) {
-            SearchConsumerScreen(navController)
+        composable("$ROUTE_SEARCH_CONSUMER/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            SearchConsumerScreen(navController, viewModel = SearchSupplierAuthViewModel())
         }
         composable(ROUTE_SETTINGS) {
             SettingsScreen(navController)
