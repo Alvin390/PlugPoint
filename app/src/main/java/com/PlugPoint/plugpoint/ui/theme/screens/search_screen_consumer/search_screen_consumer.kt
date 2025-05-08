@@ -28,7 +28,7 @@ import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 
 @Composable
-fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplierAuthViewModel) {
+fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplierAuthViewModel, userId: String) {
     var searchText by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
 
@@ -39,7 +39,7 @@ fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplier
                 viewModel.searchUsers(searchText) // Trigger search on query change
             }
         },
-        bottomBar = { ConsumerBottomNavBar(navController) }
+        bottomBar = { ConsumerBottomNavBar(navController,userId) }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -93,8 +93,8 @@ fun SearchBarUI(searchText: String, onSearchTextChanged: (String) -> Unit) {
     }
 }
 
-@Preview
-@Composable
-private fun search_consumer_preview() {
-    SearchConsumerScreen(rememberNavController(), SearchSupplierAuthViewModel())
-}
+//@Preview
+//@Composable
+//private fun search_consumer_preview() {
+//    SearchConsumerScreen(rememberNavController(), SearchSupplierAuthViewModel())
+//}

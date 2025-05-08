@@ -20,6 +20,7 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
 import com.PlugPoint.plugpoint.navigation.ROUTE_SPLASH
+import com.PlugPoint.plugpoint.networks.ImgurAPI
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier.SupplierCommodityScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerProfileScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.login.LoginScreen
@@ -31,6 +32,7 @@ import com.PlugPoint.plugpoint.ui.theme.screens.role_screen.RoleSelectionScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchConsumerScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.settings_screen.SettingsScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.splashscreen.SplashScreen
+import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
 
 @Composable
 fun AppNavHost(
@@ -38,9 +40,13 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     startDestination: String = ROUTE_LOGIN,
     imgurViewModel: ImgurViewModel,
-    darkModeViewModel: DarkModeViewModel// Add this parameter
+    darkModeViewModel: DarkModeViewModel,
+    imgurAPI: ImgurAPI// Add this parameter
 ) {
-    NavHost(navController = navController, modifier = modifier, startDestination = startDestination) {
+    val imgurViewModel: ImgurViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        factory = ImgurViewModelFactory(imgurAPI)
+    )
+    NavHost(navController = navController,modifier = modifier, startDestination = startDestination) {
         composable(ROUTE_LOGIN) {
             LoginScreen(navController, viewModel = AuthViewModel(imgurViewModel))
         }
@@ -50,13 +56,13 @@ fun AppNavHost(
         composable(ROUTE_REGISTRATION_CONSUMER) {
             RegistrationConsumerScreen(navController, viewModel = AuthViewModel(imgurViewModel))
         }
-        composable("$ROUTE_PROFILE_SUPPLIER/{userId}") { backStackEntry ->
+        composable("$ROUTE_SEARCH_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SupplierProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
+            SearchScreenSupplier(navController, viewModel = SearchSupplierAuthViewModel(), userId = userId)
         }
-        composable("$ROUTE_PROFILE_CONSUMER/{userId}") { backStackEntry ->
+        composable("$ROUTE_SEARCH_CONSUMER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
+            SearchConsumerScreen(navController, viewModel = SearchSupplierAuthViewModel(), userId = userId)
         }
         composable(ROUTE_NOTIFICATION) {
             NotificationScreen(navController)
@@ -64,13 +70,13 @@ fun AppNavHost(
         composable(ROUTE_ROLES) {
             RoleSelectionScreen(navController)
         }
-        composable("$ROUTE_SEARCH_SUPPLIER/{userId}") { backStackEntry ->
+        composable("$ROUTE_PROFILE_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SearchScreenSupplier(navController, viewModel = SearchSupplierAuthViewModel())
+            SupplierProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
         }
-        composable("$ROUTE_SEARCH_CONSUMER/{userId}") { backStackEntry ->
+        composable("$ROUTE_PROFILE_CONSUMER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SearchConsumerScreen(navController, viewModel = SearchSupplierAuthViewModel())
+            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
         }
         composable(ROUTE_SETTINGS) {
             SettingsScreen(navController, darkModeViewModel = darkModeViewModel)

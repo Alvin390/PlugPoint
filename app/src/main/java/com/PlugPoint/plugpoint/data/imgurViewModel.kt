@@ -22,6 +22,10 @@ class ImgurViewModel(private val imgurAPI: ImgurAPI) : ViewModel() {
     val uploadState: StateFlow<ImgurUploadState> get() = _uploadState
 
     fun uploadImage(uri: Uri?, context: Context, authorization: String) {
+        if (uri == null) {
+            _uploadState.value = ImgurUploadState.Error("Invalid URI: URI is null")
+            return
+        }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 _uploadState.value = ImgurUploadState.Loading
@@ -37,11 +41,12 @@ class ImgurViewModel(private val imgurAPI: ImgurAPI) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _uploadState.value = ImgurUploadState.Error("Error: ${e.message}")
+            }finally {
+                _uploadState.value = ImgurUploadState.Idle // Reset state after upload
             }
         }
     }
 }
-
 sealed class ImgurUploadState {
     object Idle : ImgurUploadState()
     object Loading : ImgurUploadState()

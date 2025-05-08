@@ -15,12 +15,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHost
 import com.PlugPoint.plugpoint.data.DarkModeViewModel
+import com.PlugPoint.plugpoint.networks.ImgurAPI
 import com.PlugPoint.plugpoint.ui.theme.PlugPointTheme
+import com.PlugPoint.plugpoint.utilis.DarkModeViewModelFactory
+import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val retrofit = Retrofit.Builder()
+            .baseUrl("https://api.imgur.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+        val imgurAPI = retrofit.create(ImgurAPI::class.java)
+
         setContent {
             PlugPointTheme {
                 val darkModeViewModel: DarkModeViewModel = viewModel(
@@ -29,7 +40,8 @@ class MainActivity : ComponentActivity() {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AppNavHost(
                         darkModeViewModel = darkModeViewModel,
-                        imgurViewModel = viewModel()
+                        imgurAPI = imgurAPI, // Pass imgurAPI here
+                        imgurViewModel = viewModel(factory = ImgurViewModelFactory(imgurAPI))
                     )
                 }
             }

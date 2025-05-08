@@ -42,10 +42,11 @@ import coil.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
 import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel.User
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
+import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchBarUI
 
 @Composable
-fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplierAuthViewModel) {
+fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplierAuthViewModel, userId: String) {
     var searchText by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
 
@@ -56,7 +57,7 @@ fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplier
                 viewModel.searchUsers(searchText) // Trigger search on query change
             }
         },
-        bottomBar = { ConsumerBottomNavBar(navController) }
+        bottomBar = { SupplierBottomNavBar(navController,userId) }
     ) { padding ->
         Box(
             modifier = Modifier

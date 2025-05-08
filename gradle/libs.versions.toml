@@ -1,5 +1,5 @@
 [versions]
-agp = "8.9.2"
+agp = "8.10.0"
 coilCompose = "2.4.0"
 coilComposeVersion = "2.4.0"
 converterGson = "2.9.0"
@@ -23,6 +23,7 @@ firebaseAuth = "23.2.0"
 firebaseFirestore = "25.1.4"
 firebaseDatabaseKtx = "21.0.0"
 okhttp = "4.12.0"
+playServicesBase = "18.7.0"
 retrofit = "2.9.0"
 roomRuntimeAndroid = "2.7.1"
 
@@ -56,6 +57,7 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "playServicesBase" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 
 [plugins]

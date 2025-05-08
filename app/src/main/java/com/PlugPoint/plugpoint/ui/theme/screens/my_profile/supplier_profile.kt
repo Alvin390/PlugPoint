@@ -237,16 +237,16 @@ fun SupplierBottomNavBar(navController: NavController, userId: String) {
         Icons.Default.MailOutline
     )
     val routes = listOf(
-        ROUTE_PROFILE_SUPPLIER, // Navigate to "My Profile"
-        ROUTE_SEARCH_SUPPLIER,  // Navigate to "Search"
-        null,                   // Notifications (not built yet)
-        null                    // Chat (not built yet)
+        "$ROUTE_PROFILE_SUPPLIER/$userId", // Full route for "My Profile"
+        "$ROUTE_SEARCH_SUPPLIER/$userId", // Full route for "Search"
+        null,                             // Notifications (not built yet)
+        null                              // Chat (not built yet)
     )
 
     val currentRoute = navController.currentBackStackEntry?.destination?.route
 
     NavigationBar(
-        containerColor = Color(0xFFFFDEAD),
+        containerColor = Color(0xFFFFDEAD), // Light orange
         contentColor = Color.Black,
         tonalElevation = 8.dp
     ) {
@@ -259,10 +259,10 @@ fun SupplierBottomNavBar(navController: NavController, userId: String) {
                     )
                 },
                 label = { Text(label, fontSize = 12.sp) },
-                selected = routes[index] != null && currentRoute?.startsWith(routes[index] ?: "") == true,
-                onClick = { // Replace with the actual user ID
+                selected = routes[index] == currentRoute, // Match full route
+                onClick = {
                     if (routes[index] != null && routes[index] != currentRoute) {
-                        navController.navigate("${routes[index]}/$userId") {
+                        navController.navigate(routes[index]!!) {
                             popUpTo(navController.graph.startDestinationId) { saveState = true }
                             launchSingleTop = true
                             restoreState = true
@@ -270,11 +270,11 @@ fun SupplierBottomNavBar(navController: NavController, userId: String) {
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color(0xFFFF8C00),
+                    selectedIconColor = Color(0xFFFF8C00), // Dark orange
                     selectedTextColor = Color(0xFFFF8C00),
-                    indicatorColor = Color(0xFFFFEFD5),
+                    indicatorColor = Color(0xFFFFEFD5), // Light peach
                     unselectedIconColor = Color.Gray,
-                    unselectedTextColor = Color.Gray,
+                    unselectedTextColor = Color.Gray
                 )
             )
         }

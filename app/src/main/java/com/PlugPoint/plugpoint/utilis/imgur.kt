@@ -8,6 +8,8 @@ import java.io.FileOutputStream
 object ImgurUtils {
 
     fun getFileFromUri(uri: Uri?, context: Context): File {
+        requireNotNull(uri) { "URI cannot be null" }
+
         val inputStream = context.contentResolver.openInputStream(uri)
         val tempFile = File.createTempFile("temp_image", ".jpg", context.cacheDir)
         val outputStream = FileOutputStream(tempFile)

@@ -90,22 +90,20 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
     var isEditing by remember { mutableStateOf(false) }
-    val commodities = remember { mutableStateListOf<Commodity>() }
+//    val commodities = remember { mutableStateListOf<Commodity>() }
     var showActionDialog by remember { mutableStateOf(false) }
     var selectedCommodity by remember { mutableStateOf<Commodity?>(null) }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-
+    val commodities  by viewModel.commodities.collectAsState()
     val userId = userId // Replace with actual user ID
     LaunchedEffect(userId) {
         viewModel.fetchCommoditiesFromFirestore(userId)
     }
 
     // Update `SupplierCommodityScreen`
-    LaunchedEffect(Unit) {
-        viewModel.fetchCommoditiesFromFirestore(
-            userId = userId, // Replace with actual user ID
-        )
+    LaunchedEffect(userId) {
+        viewModel.fetchCommoditiesFromFirestore(userId)
     }
 
     @Composable
@@ -245,7 +243,8 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
                                 onSuccess = {
                                     snackbarMessage = "Commodity updated successfully!"
                                 },
-                                onFailure = { exception ->})
+                                onFailure = { exception ->},
+                                context= context)
                         } else {
                             // Add a new commodity
                             viewModel.addCommodityToFirestore(
@@ -277,35 +276,53 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
 
         if (showActionDialog && selectedCommodity != null) {
             ActionDialog(
-                commodity = selectedCommodity!!,
+                commodity = selectedCommodity!!, // Replace this with safe access
                 onBooked = {
-                    val index = commodities.indexOf(selectedCommodity)
-                    if (index != -1) {
-                        commodities.toMutableList()[index] = selectedCommodity!!.updateBooked(true) // For non-data class
-                    }
-                    showActionDialog = false
-                },
-                onEdit = {
-                    showDialog = true
-                    showActionDialog = false
-                    isEditing= true
-                },
-                onDelete = {
-                    val commodityId = selectedCommodity?.id // Ensure the commodity has a unique ID
-                    if (commodityId != null) {
-                        viewModel.deleteCommodityFromFirestore(
-                            userId = userId, // Replace with the actual user ID
-                            commodityId = commodityId,
+                    selectedCommodity?.let { commodity ->
+                        val updatedCommodity = commodity.updateBooked(true)
+                        viewModel.updateCommodityInFirestore(
+                            userId = userId,
+                            commodityId = commodity.id,
+                            updatedCommodity = updatedCommodity,
                             onSuccess = {
-                                commodities.remove(selectedCommodity)
-                                snackbarMessage = "Commodity deleted successfully!"
+                                snackbarMessage = "Commodity booked successfully!"
                             },
                             onFailure = { exception ->
-                                snackbarMessage = "Error deleting commodity: ${exception.message}"
-                            }
+                                snackbarMessage = "Error booking commodity: ${exception.message}"
+                            },
+                            context = context
                         )
                     }
-                    showActionDialog = false
+                },
+                onEdit = {
+                    selectedCommodity?.let { commodity ->
+                        showDialog = true
+                        showActionDialog = false
+                        isEditing = true
+                    }
+                },
+                onDelete = {
+                    selectedCommodity?.let { commodity ->
+                        val updatedCommodities = commodities.toMutableList()
+                        val commodityId =
+                            selectedCommodity?.id // Ensure the commodity has a unique ID
+                        if (commodityId != null) {
+                            viewModel.deleteCommodityFromFirestore(
+                                userId = userId, // Replace with the actual user ID
+                                commodityId = commodityId,
+                                onSuccess = {
+                                    updatedCommodities.remove(selectedCommodity)
+                                    viewModel.updateCommodities(updatedCommodities)
+                                    snackbarMessage = "Commodity deleted successfully!"
+                                },
+                                onFailure = { exception ->
+                                    snackbarMessage =
+                                        "Error deleting commodity: ${exception.message}"
+                                }
+                            )
+                        }
+                        showActionDialog = false
+                    }
                 },
                 onDismiss = { showActionDialog = false }
             )

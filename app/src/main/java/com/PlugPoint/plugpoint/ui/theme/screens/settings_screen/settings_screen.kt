@@ -85,8 +85,8 @@ fun SettingsScreen(navController: NavController, darkModeViewModel: DarkModeView
     }
 }
 
-@Preview
-@Composable
-private fun settings_prev() {
-    SettingsScreen(rememberNavController(), DarkModeViewModel())
-}
+//@Preview
+//@Composable
+//private fun settings_prev() {
+//    SettingsScreen(rememberNavController(), DarkModeViewModel())
+//}

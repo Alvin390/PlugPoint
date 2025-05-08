@@ -62,7 +62,7 @@ fun ConsumerProfileScreen(navController: NavController,
     }
     Scaffold(
         topBar = { ConsumerTopBar() },
-        bottomBar = { ConsumerBottomNavBar(navController) }
+        bottomBar = { ConsumerBottomNavBar(navController,userId) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -195,7 +195,7 @@ fun ProfileDetails(userConsumer: UserConsumer) {
 }
 
 @Composable
-fun ConsumerBottomNavBar(navController: NavController) {
+fun ConsumerBottomNavBar(navController: NavController, userId: String) {
     val items = listOf("My Profile", "Search", "Notifications", "Chat")
     val icons = listOf(
         Icons.Default.Person,
@@ -204,13 +204,12 @@ fun ConsumerBottomNavBar(navController: NavController) {
         Icons.Default.MailOutline
     )
     val routes = listOf(
-        ROUTE_PROFILE_CONSUMER, // Navigate to "My Profile"
-        ROUTE_SEARCH_CONSUMER,  // Navigate to "Search"
-        null,                   // Notifications (not built yet)
-        null                    // Chat (not built yet)
+        "$ROUTE_PROFILE_CONSUMER/$userId", // Full route for "My Profile"
+        "$ROUTE_SEARCH_CONSUMER/$userId", // Full route for "Search"
+        null,                             // Notifications (not built yet)
+        null                              // Chat (not built yet)
     )
 
-    // Get the current route
     val currentRoute = navController.currentBackStackEntry?.destination?.route
 
     NavigationBar(
@@ -227,7 +226,7 @@ fun ConsumerBottomNavBar(navController: NavController) {
                     )
                 },
                 label = { Text(label, fontSize = 12.sp) },
-                selected = routes[index] == currentRoute,
+                selected = routes[index] == currentRoute, // Match full route
                 onClick = {
                     if (routes[index] != null && routes[index] != currentRoute) {
                         navController.navigate(routes[index]!!) {
