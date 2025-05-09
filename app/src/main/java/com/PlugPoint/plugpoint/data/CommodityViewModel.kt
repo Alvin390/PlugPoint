@@ -1,4 +1,5 @@
 import android.net.Uri
+import androidx.lifecycle.ViewModel
 import com.PlugPoint.plugpoint.data.ImgurUploadState
 import com.PlugPoint.plugpoint.models.Commodity
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,8 +12,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.PlugPoint.plugpoint.data.ImgurViewModel
 import kotlinx.coroutines.flow.first
+import androidx.lifecycle.viewModelScope
 
-class CommodityViewModel(private val imgurViewModel: ImgurViewModel) {
+class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
     private val _commodities = MutableStateFlow<List<Commodity>>(emptyList())
     val commodities: StateFlow<List<Commodity>> get() = _commodities
@@ -42,12 +44,12 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel) {
             } catch (exception: Exception) {
                 onFailure(exception)
             }
-            refreshCommodities(userId) // Unified refresh logic
+//            refreshCommodities(userId) // Unified refresh logic
         }
     }
 
     fun fetchCommoditiesFromFirestore(userId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val snapshot = firestore.collection("suppliers").document(userId).collection("commodities").get().await()
                 val commodities = snapshot.documents.mapNotNull { document ->
@@ -107,12 +109,12 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel) {
                 val commodityRef = firestore.collection("suppliers").document(userId).collection("commodities").document(commodityId)
                 commodityRef.set(updatedCommodity).await()
 
-                refreshCommodities(userId) // Unified refresh logic
+//                refreshCommodities(userId) // Unified refresh logic
                 onSuccess()
             } catch (exception: Exception) {
                 onFailure(exception)
             }
-            refreshCommodities(userId) // Unified refresh logic
+//            refreshCommodities(userId) // Unified refresh logic
         }
     }
 

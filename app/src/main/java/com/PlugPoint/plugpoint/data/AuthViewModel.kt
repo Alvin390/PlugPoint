@@ -35,11 +35,11 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
             context.getSharedPreferences("PlugPointPrefs", Context.MODE_PRIVATE)
 
     fun saveLoginState(userId: String, userType: String) {
-        sharedPreferences.edit()
-            .putBoolean("isLoggedIn", true)
-            .putString("userId", userId)
-            .putString("userType", userType)
-            .apply()
+        sharedPreferences.edit {
+            putBoolean("isLoggedIn", true)
+                .putString("userId", userId)
+                .putString("userType", userType) // Ensure userType is saved
+        }
     }
 
         @SuppressLint("UseKtx")

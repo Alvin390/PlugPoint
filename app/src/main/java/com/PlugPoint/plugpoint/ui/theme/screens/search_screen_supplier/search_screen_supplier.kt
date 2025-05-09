@@ -44,6 +44,9 @@ import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel.User
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchBarUI
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.*
+import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplierAuthViewModel, userId: String) {
@@ -112,56 +115,57 @@ fun SearchBarUI(searchText: String, onSearchTextChanged: (String) -> Unit) {
         )
     }
 }
-    @Composable
-    fun UserRow(user: User) {
-    val name = when (user) {
-        is User.Supplier -> "${user.user.firstName} ${user.user.lastName}"
-        is User.Consumer -> "${user.user.firstName} ${user.user.lastName}"
-    }
-    val county = when (user) {
-        is User.Supplier -> user.user.county
-        is User.Consumer -> user.user.county
-    }
-    val category = when (user) {
-        is User.Supplier -> user.user.category
-        is User.Consumer -> user.user.category
-    }
-    val imageUri = when (user) {
-        is User.Supplier -> user.user.imageUri
-        is User.Consumer -> user.user.imageUri
+
+
+
+@Composable
+fun UserRow(user: SearchSupplierAuthViewModel.User) {
+    val (name, type, imageUrl) = when (user) {
+        is SearchSupplierAuthViewModel.User.Supplier -> {
+            Triple(
+                "${user.user.firstName} ${user.user.lastName}",
+                "Supplier",
+                user.user.imageUrl
+            )
+        }
+        is SearchSupplierAuthViewModel.User.Consumer -> {
+            Triple(
+                "${user.user.firstName} ${user.user.lastName}",
+                "Consumer",
+                user.user.imageUrl
+            )
+        }
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .clickable { /* You can handle profile navigation here */ }
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (!imageUri.isNullOrEmpty()) {
-            // Use Imgur URL for profile picture
-            Image(
-                painter = rememberAsyncImagePainter("https://i.imgur.com/$imageUri.jpg"),
-                contentDescription = "Profile Picture",
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray)
-            )
-        } else {
-            androidx.compose.material3.Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Default Profile Picture",
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray)
-            )
-        }
+        Image(
+            painter = rememberAsyncImagePainter(model = imageUrl),
+            contentDescription = "Profile Picture",
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+        )
+
         Spacer(modifier = Modifier.width(16.dp))
+
         Column {
-            Text(name, fontWeight = FontWeight.Bold)
-            Text(county)
-            Text(category)
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = type,
+                style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
+            )
         }
     }
 }
+

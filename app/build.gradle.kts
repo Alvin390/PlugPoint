@@ -70,7 +70,7 @@ dependencies {
     implementation(libs.androidx.room.runtime.android)
     testImplementation(libs.junit)
     implementation (libs.androidx.datastore.preferences)
-
+    implementation(libs.coil.compose.v250)
 //    implementation(libs.coil.kt.coil.compose)
     implementation(libs.androidx.navigation.compose)
     androidTestImplementation(libs.androidx.junit)

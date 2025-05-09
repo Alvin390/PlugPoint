@@ -52,6 +52,9 @@ class MainActivity : ComponentActivity() {
                 val imgurViewModel: ImgurViewModel = viewModel(factory = ImgurViewModelFactory(imgurAPI))
                 val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(imgurViewModel, applicationContext))
 
+//                val isUserLoggedIn = authViewModel.isUserLoggedIn()
+//                val userId = authViewModel.getLoggedInUserId()
+
                 val isUserLoggedIn = authViewModel.isUserLoggedIn()
                 val userId = authViewModel.getLoggedInUserId()
 
@@ -71,7 +74,8 @@ class MainActivity : ComponentActivity() {
                         imgurViewModel = imgurViewModel,
                         darkModeViewModel = darkModeViewModel,
                         imgurAPI = imgurAPI,
-                        authViewModel = authViewModel
+                        authViewModel = authViewModel,
+                        startDestination = startDestination
                     )
                 }
             }

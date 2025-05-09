@@ -87,7 +87,7 @@ fun AppNavHost(
         }
         composable("$ROUTE_COMMODITY_LIST/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SupplierCommodityScreen(navController, viewModel = CommodityViewModel(imgurViewModel), userId = userId)
+            SupplierCommodityScreen(navController, userId = userId, imgurViewModel = imgurViewModel)
         }
     }
 }

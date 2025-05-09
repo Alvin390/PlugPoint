@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -22,28 +23,70 @@ class SearchSupplierAuthViewModel : ViewModel() {
     }
 
     fun searchUsers(query: String, onError: (String) -> Unit = {}) {
-        val normalizedQuery = query.trim().lowercase() // Normalize the query
+        val normalizedQuery = query.trim().lowercase()
 
         viewModelScope.launch {
             try {
-                val results = firestore.collectionGroup("searchableField")
-                    .whereGreaterThanOrEqualTo("_name_", normalizedQuery)
-                    .whereLessThanOrEqualTo("_name_", "$normalizedQuery\uf8ff")
-                    .get()
-                    .await()
-                    .documents.mapNotNull { document ->
-                        when (document.getString("category")) {
-                            "supplier" -> document.toObject(UserSupplier::class.java)?.let { User.Supplier(it) }
-                            "consumer" -> document.toObject(UserConsumer::class.java)?.let { User.Consumer(it) }
-                            else -> null
+                val suppliersDeferred = async {
+                    firestore.collection("suppliers")
+                        .get()
+                        .await()
+                        .documents.mapNotNull { document ->
+                            document.toObject(UserSupplier::class.java)?.let { user ->
+                                User.Supplier(user)
+                            }
+                        }
+                }
+
+                val consumersDeferred = async {
+                    firestore.collection("consumers")
+                        .get()
+                        .await()
+                        .documents.mapNotNull { document ->
+                            document.toObject(UserConsumer::class.java)?.let { user ->
+                                User.Consumer(user)
+                            }
+                        }
+                }
+
+                val suppliers = suppliersDeferred.await()
+                val consumers = consumersDeferred.await()
+
+                val allUsers = suppliers + consumers
+
+                _searchResults.value = allUsers.filter { user ->
+                    when (user) {
+                        is User.Supplier -> {
+                            with(user.user) {
+                                firstName.contains(normalizedQuery, ignoreCase = true) ||
+                                        lastName.contains(normalizedQuery, ignoreCase = true) ||
+                                        companyName.contains(normalizedQuery, ignoreCase = true) ||
+                                        category.contains(normalizedQuery, ignoreCase = true) ||
+                                        county.contains(normalizedQuery, ignoreCase = true)
+                            }
+                        }
+                        is User.Consumer -> {
+                            with(user.user) {
+                                firstName.contains(normalizedQuery, ignoreCase = true) ||
+                                        lastName.contains(normalizedQuery, ignoreCase = true) ||
+                                        companyName.contains(normalizedQuery, ignoreCase = true) ||
+                                        category.contains(normalizedQuery, ignoreCase = true) ||
+                                        county.contains(normalizedQuery, ignoreCase = true)
+                            }
                         }
                     }
+                }
 
-                _searchResults.value = results
-            } catch (exception: Exception) {
-                onError("Error fetching search results: ${exception.message}")
-                _searchResults.value = emptyList() // Clear results on error
+            } catch (e: Exception) {
+                onError("Error fetching users: ${e.message}")
+                _searchResults.value = emptyList()
             }
         }
+    }
+
+
+    // Helper function to extract Imgur ID from a URL
+    private fun extractImgurId(imageUri: String?): String? {
+        return imageUri?.substringAfterLast("/")?.substringBefore(".")
     }
 }
