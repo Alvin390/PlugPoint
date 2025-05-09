@@ -1,6 +1,7 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.login
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

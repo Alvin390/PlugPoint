@@ -1,6 +1,7 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.registration_consumer
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts

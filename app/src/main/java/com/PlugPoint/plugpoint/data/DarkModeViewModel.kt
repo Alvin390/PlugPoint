@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 class DarkModeViewModel(private val context: Context) : ViewModel() {
     private val _isDarkModeEnabled = MutableStateFlow(false)
-    val isDarkModeEnabled: StateFlow<Boolean> get() = _isDarkModeEnabled
+    val isDarkModeEnabled: StateFlow<Boolean> = _isDarkModeEnabled
 
     init {
         viewModelScope.launch {
@@ -19,10 +19,10 @@ class DarkModeViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun toggleDarkMode(enabled: Boolean) {
+    fun toggleDarkMode(isEnabled: Boolean) {
         viewModelScope.launch {
-            _isDarkModeEnabled.value = enabled
-            DarkModePreferences.saveDarkModeState(context, enabled)
+            DarkModePreferences.saveDarkModeState(context, isEnabled)
+            _isDarkModeEnabled.value = isEnabled
         }
     }
 }

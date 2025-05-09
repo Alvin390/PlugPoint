@@ -2,6 +2,9 @@ package com.PlugPoint.plugpoint.ui.theme.screens.settings_screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -13,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,7 +37,7 @@ fun SettingsScreen(navController: NavController, darkModeViewModel: DarkModeView
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.ic_arrow_back),
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -54,8 +58,9 @@ fun SettingsScreen(navController: NavController, darkModeViewModel: DarkModeView
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_biometric),
-                    contentDescription = "Biometric Login"
+                    painter = painterResource(id = R.drawable.ic_biometric),
+                    contentDescription = "Biometric Login",
+                    modifier = Modifier.size(30.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Biometric Login", modifier = Modifier.weight(1f))
@@ -71,8 +76,9 @@ fun SettingsScreen(navController: NavController, darkModeViewModel: DarkModeView
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = ImageVector.vectorResource(id = R.drawable.ic_moon),
-                    contentDescription = "Dark Mode"
+                    painter = painterResource(id = R.drawable.ic_moon),
+                    contentDescription = "Biometric Login",
+                    modifier = Modifier.size(30.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Dark Mode", modifier = Modifier.weight(1f))

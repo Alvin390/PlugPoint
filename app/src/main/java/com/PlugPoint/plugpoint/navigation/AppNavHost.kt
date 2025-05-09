@@ -1,5 +1,6 @@
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,20 +42,20 @@ fun AppNavHost(
     startDestination: String = ROUTE_LOGIN,
     imgurViewModel: ImgurViewModel,
     darkModeViewModel: DarkModeViewModel,
-    imgurAPI: ImgurAPI// Add this parameter
+    imgurAPI: ImgurAPI,
+    authViewModel: AuthViewModel
 ) {
-    val imgurViewModel: ImgurViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        factory = ImgurViewModelFactory(imgurAPI)
-    )
-    NavHost(navController = navController,modifier = modifier, startDestination = startDestination) {
+    val context = LocalContext.current
+
+    NavHost(navController = navController, modifier = modifier, startDestination = startDestination) {
         composable(ROUTE_LOGIN) {
-            LoginScreen(navController, viewModel = AuthViewModel(imgurViewModel))
+            LoginScreen(navController, authViewModel)
         }
         composable(ROUTE_REGISTRATION_SUPPLIER) {
-            RegistrationSupplierScreen(navController, viewModel = AuthViewModel(imgurViewModel))
+            RegistrationSupplierScreen(navController, viewModel = AuthViewModel(imgurViewModel, context))
         }
         composable(ROUTE_REGISTRATION_CONSUMER) {
-            RegistrationConsumerScreen(navController, viewModel = AuthViewModel(imgurViewModel))
+            RegistrationConsumerScreen(navController, viewModel = AuthViewModel(imgurViewModel, context))
         }
         composable("$ROUTE_SEARCH_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
@@ -72,11 +73,11 @@ fun AppNavHost(
         }
         composable("$ROUTE_PROFILE_SUPPLIER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SupplierProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
+            SupplierProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel, context), userId = userId)
         }
         composable("$ROUTE_PROFILE_CONSUMER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel), userId = userId)
+            ConsumerProfileScreen(navController, authViewModel = AuthViewModel(imgurViewModel, context), userId = userId)
         }
         composable(ROUTE_SETTINGS) {
             SettingsScreen(navController, darkModeViewModel = darkModeViewModel)

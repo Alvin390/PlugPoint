@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,47 +26,24 @@ class SearchSupplierAuthViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val suppliersDeferred = async {
-                    firestore.collection("suppliers")
-                        .whereGreaterThanOrEqualTo("searchableField", normalizedQuery)
-                        .whereLessThanOrEqualTo("searchableField", "$normalizedQuery\uf8ff")
-                        .get()
-                        .await()
-                        .documents.mapNotNull { document ->
-                            document.toObject(UserSupplier::class.java)?.let { user ->
-                                user.imageUri = extractImgurId(user.imageUri) // Ensure Imgur ID
-                                User.Supplier(user)
-                            }
+                val results = firestore.collectionGroup("searchableField")
+                    .whereGreaterThanOrEqualTo("_name_", normalizedQuery)
+                    .whereLessThanOrEqualTo("_name_", "$normalizedQuery\uf8ff")
+                    .get()
+                    .await()
+                    .documents.mapNotNull { document ->
+                        when (document.getString("category")) {
+                            "supplier" -> document.toObject(UserSupplier::class.java)?.let { User.Supplier(it) }
+                            "consumer" -> document.toObject(UserConsumer::class.java)?.let { User.Consumer(it) }
+                            else -> null
                         }
-                }
+                    }
 
-                val consumersDeferred = async {
-                    firestore.collection("consumers")
-                        .whereGreaterThanOrEqualTo("searchableField", normalizedQuery)
-                        .whereLessThanOrEqualTo("searchableField", "$normalizedQuery\uf8ff")
-                        .get()
-                        .await()
-                        .documents.mapNotNull { document ->
-                            document.toObject(UserConsumer::class.java)?.let { user ->
-                                user.imageUri = extractImgurId(user.imageUri) // Ensure Imgur ID
-                                User.Consumer(user)
-                            }
-                        }
-                }
-
-                val suppliers = suppliersDeferred.await()
-                val consumers = consumersDeferred.await()
-
-                _searchResults.value = suppliers + consumers // Combine results
+                _searchResults.value = results
             } catch (exception: Exception) {
                 onError("Error fetching search results: ${exception.message}")
                 _searchResults.value = emptyList() // Clear results on error
             }
         }
-    }
-
-    // Helper function to extract Imgur ID from a URL
-    private fun extractImgurId(imageUri: String?): String? {
-        return imageUri?.substringAfterLast("/")?.substringBefore(".")
     }
 }

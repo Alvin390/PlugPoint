@@ -37,7 +37,7 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel) {
                 commodity.id = commodityId
                 userCommoditiesRef.document(commodityId).set(commodity).await()
 
-                refreshCommodities(userId) // Unified refresh logic
+//                refreshCommodities(userId) // Unified refresh logic
                 onSuccess()
             } catch (exception: Exception) {
                 onFailure(exception)

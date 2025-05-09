@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint.data
 
+import android.annotation.SuppressLint
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
@@ -12,8 +13,12 @@ import kotlinx.coroutines.launch
 import android.net.Uri
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.first
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.core.content.edit
 
-class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
+class AuthViewModel(private val imgurViewModel: ImgurViewModel,
+                    @SuppressLint("StaticFieldLeak") private val context: Context) : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
 
     private val _supplierDetails = MutableStateFlow<UserSupplier?>(null)
@@ -24,6 +29,46 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
 
     private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
     val registrationState: StateFlow<RegistrationState> = _registrationState
+
+
+        private val sharedPreferences: SharedPreferences =
+            context.getSharedPreferences("PlugPointPrefs", Context.MODE_PRIVATE)
+
+    fun saveLoginState(userId: String, userType: String) {
+        sharedPreferences.edit()
+            .putBoolean("isLoggedIn", true)
+            .putString("userId", userId)
+            .putString("userType", userType)
+            .apply()
+    }
+
+        @SuppressLint("UseKtx")
+        fun clearLoginState() {
+            sharedPreferences.edit {
+                remove("isLoggedIn")
+                    .remove("userId")
+            }
+        }
+
+        fun isUserLoggedIn(): Boolean {
+            return sharedPreferences.getBoolean("isLoggedIn", false)
+        }
+
+        fun getLoggedInUserId(): String? {
+            return sharedPreferences.getString("userId", null)
+        }
+
+
+    fun logoutUser(onNavigateToLogin: () -> Unit) {
+        viewModelScope.launch {
+            // Clear any session-related data if needed
+            _supplierDetails.value = null
+            _consumerDetails.value = null
+
+            // Navigate to the login screen
+            onNavigateToLogin()
+        }
+    }
 
 
     fun registerUser(
@@ -99,6 +144,7 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
                 .addOnSuccessListener { snapshot ->
                     if (!snapshot.isEmpty) {
                         val userId = snapshot.documents.first().id
+                        saveLoginState(userId, "supplier")
                         onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$userId")
                         return@addOnSuccessListener
                     }
@@ -111,17 +157,18 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
                         .addOnSuccessListener { consumerSnapshot ->
                             if (!consumerSnapshot.isEmpty) {
                                 val consumerId = consumerSnapshot.documents.first().id
+                                saveLoginState(consumerId, "consumer")
                                 onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$consumerId")
                             } else {
                                 onLoginError("Invalid email or password.")
                             }
                         }
-                        .addOnFailureListener {
-                            onLoginError("Failed to fetch consumer data: ${it.message}")
+                        .addOnFailureListener { e ->
+                            onLoginError("Error: ${e.message}")
                         }
                 }
-                .addOnFailureListener {
-                    onLoginError("Failed to fetch supplier data: ${it.message}")
+                .addOnFailureListener { e ->
+                    onLoginError("Error: ${e.message}")
                 }
         }
     }
@@ -148,6 +195,7 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel) : ViewModel() {
             .addOnFailureListener {
                 println("Error fetching profile details: ${it.message}")
             }
+
     }
 
     private fun validateFormData(formData: Map<String, String>): String? {

@@ -3,6 +3,7 @@ package com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile
 
 
 
+import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -40,12 +41,15 @@ import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
+import com.PlugPoint.plugpoint.navigation.ROUTE_LOGIN
 import com.PlugPoint.plugpoint.navigation.ROUTE_NOTIFICATION
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
+import com.PlugPoint.plugpoint.ui.theme.gray
+import com.PlugPoint.plugpoint.ui.theme.red
 import kotlin.text.category
 import kotlin.text.ifEmpty
 
@@ -56,6 +60,42 @@ fun ConsumerProfileScreen(navController: NavController,
                           userId: String) {
     authViewModel.fetchProfileDetails(userId, "consumer")
     val userConsumer by authViewModel.consumerDetails.collectAsState()
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Handle back press
+    BackHandler {
+        showLogoutDialog = true
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Logout") },
+            text = { Text("Are you sure you want to log out?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        authViewModel.logoutUser {
+                            navController.navigate(ROUTE_LOGIN) {
+                                popUpTo(0) // Clear the back stack
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = red) // Set "Yes" button color
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLogoutDialog = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = gray) // Set "No" button color
+                ) {
+                    Text("No")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(userId) {
         authViewModel.fetchProfileDetails(userId, "consumer")
@@ -95,10 +135,12 @@ fun ConsumerProfileScreen(navController: NavController,
                         Triple("Saved Suppliers", R.drawable.savedsuppliersconsumer, ROUTE_SEARCH_CONSUMER),
                         Triple("Edit Profile", R.drawable.editprofileconsumer, ROUTE_PROFILE_CONSUMER),
                         Triple("Settings", R.drawable.settingsconsumer, ROUTE_SETTINGS),
-                        Triple("Logout", R.drawable.logoutsupply, ROUTE_PROFILE_SUPPLIER)
+                        Triple("Logout", R.drawable.logoutsupply, ROUTE_LOGIN)
                     )
                 ) { (title, imageRes, route) ->
-                    FeatureCard(title, imageRes, navController, route)
+                    FeatureCard(title, imageRes, navController, route
+                    )
+
                 }
             }
         }

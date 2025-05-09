@@ -83,6 +83,7 @@ import com.PlugPoint.plugpoint.ui.theme.pineMist
 import com.PlugPoint.plugpoint.ui.theme.scarlet
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import okhttp3.internal.userAgent
+import androidx.core.net.toUri
 
 
 @Composable
@@ -102,6 +103,10 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
     }
 
     // Update `SupplierCommodityScreen`
+//    LaunchedEffect(userId) {
+//        viewModel.fetchCommoditiesFromFirestore(userId)
+//    }
+//
     LaunchedEffect(userId) {
         viewModel.fetchCommoditiesFromFirestore(userId)
     }
@@ -256,7 +261,7 @@ fun SupplierCommodityScreen(navController: NavController, viewModel: CommodityVi
                                 onFailure = { exception ->
                                     snackbarMessage = "Error adding commodity: ${exception.message}"
                                 },
-                                imageUri = commodity.imageUri?.let { Uri.parse(it) },
+                                imageUri = commodity.imageUri?.toUri(),
                                 context = context
                             )
                         }
