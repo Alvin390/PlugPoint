@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.registration_supplier
 
+import android.R
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
@@ -64,6 +65,7 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var phoneNumber by remember { mutableStateOf("") }
 
     val categories = listOf("Construction", "Agriculture", "Technology", "Cosmetics", "Other")
     val kenyanCounties = listOf(
@@ -201,6 +203,23 @@ fun RegistrationSupplierScreen(navController: NavController,viewModel: AuthViewM
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = neworange,
+                            unfocusedIndicatorColor = neworange1
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                item {
+                    OutlinedTextField(
+                        value = phoneNumber,
+                        onValueChange = { phoneNumber = it },
+                        label = { Text("Phone Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,

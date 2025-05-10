@@ -13,5 +13,6 @@ data class UserConsumer(
     var password: String = "",
     var confirmPassword: String = "",
     val imageUrl: String="",
-    var imageUri: String? = null
+    var imageUri: String? = null,
+    var phoneNumber: String = "",
 )

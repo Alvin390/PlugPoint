@@ -2,7 +2,6 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import com.PlugPoint.plugpoint.data.ImgurUploadState
 import com.PlugPoint.plugpoint.models.Commodity
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -13,6 +12,7 @@ import kotlinx.coroutines.launch
 import com.PlugPoint.plugpoint.data.ImgurViewModel
 import kotlinx.coroutines.flow.first
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.firestore.FirebaseFirestore
 
 class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
@@ -39,7 +39,7 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel(
                 commodity.id = commodityId
                 userCommoditiesRef.document(commodityId).set(commodity).await()
 
-//                refreshCommodities(userId) // Unified refresh logic
+                refreshCommodities(userId) // Unified refresh logic
                 onSuccess()
             } catch (exception: Exception) {
                 onFailure(exception)

@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.registration_consumer
 
+import android.R.attr.phoneNumber
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
@@ -63,6 +64,7 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
+    var phoneNumber by remember { mutableStateOf("") }
 
     val categories = listOf("Construction", "Agriculture", "Technology", "Cosmetics", "Other")
     val kenyanCounties = listOf(
@@ -197,6 +199,23 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 item {
+                    OutlinedTextField(
+                        value = phoneNumber,
+                        onValueChange = { phoneNumber = it },
+                        label = { Text("Phone Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = blue,
+                            unfocusedIndicatorColor = blue1
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                item {
                     // County Dropdown
                     OutlinedTextField(
                         value = county,
@@ -316,7 +335,8 @@ fun RegistrationConsumerScreen(navController: NavController, viewModel: AuthView
                                 "category" to category,
                                 "email" to email,
                                 "password" to password,
-                                "confirmPassword" to confirmPassword
+                                "confirmPassword" to confirmPassword,
+                                "phoneNumber" to phoneNumber
                             )
 
                             // Move LocalContext.current inside the @Composable scope

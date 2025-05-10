@@ -37,6 +37,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import coil3.Uri
 import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.models.UserConsumer
@@ -61,6 +62,7 @@ fun ConsumerProfileScreen(navController: NavController,
     authViewModel.fetchProfileDetails(userId, "consumer")
     val userConsumer by authViewModel.consumerDetails.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
 
     // Handle back press
     BackHandler {
@@ -138,12 +140,31 @@ fun ConsumerProfileScreen(navController: NavController,
                         Triple("Logout", R.drawable.logoutsupply, ROUTE_LOGIN)
                     )
                 ) { (title, imageRes, route) ->
-                    FeatureCard(title, imageRes, navController, route
-                    )
+                    FeatureCard(title, imageRes, navController, route)
 
+                    if (title == "Edit Profile") {
+                        showEditDialog = true
+                    }
                 }
             }
         }
+    }
+
+    if (showEditDialog && userConsumer != null) {
+        EditConsumerProfileDialog(
+            userConsumer = userConsumer,
+            onDismiss = { showEditDialog = false },
+            onSave = { updatedData, imageUri ->
+                authViewModel.updateUserDetails(
+                    userId = userId,
+                    userType = "consumer",
+                    updatedData = updatedData,
+                    imageUri = imageUri,
+                    onUpdateSuccess = { showEditDialog = false },
+                    onUpdateFailure = { error -> println("Error: $error") }
+                )
+            }
+        )
     }
 }
 
@@ -313,6 +334,60 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavCon
             Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         }
     }
+}
+
+@Composable
+fun EditConsumerProfileDialog(
+    userConsumer: UserConsumer,
+    onDismiss: () -> Unit,
+    onSave: (Map<String, String>, Uri?) -> Unit
+) {
+    var firstName by remember { mutableStateOf(userConsumer.firstName) }
+    var lastName by remember { mutableStateOf(userConsumer.lastName) }
+    var county by remember { mutableStateOf(userConsumer.county) }
+    var category by remember { mutableStateOf(userConsumer.category) }
+    var email by remember { mutableStateOf(userConsumer.email) }
+    var phoneNumber by remember { mutableStateOf(userConsumer.phoneNumber) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Profile") },
+        text = {
+            Column {
+                TextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") })
+                TextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") })
+                TextField(value = county, onValueChange = { county = it }, label = { Text("County") })
+                TextField(value = category, onValueChange = { category = it }, label = { Text("Category") })
+                TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+                TextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") })
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { /* Logic to pick an image */ }) {
+                    Text("Upload Photo")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val updatedData = mapOf(
+                    "firstName" to firstName,
+                    "lastName" to lastName,
+                    "county" to county,
+                    "category" to category,
+                    "email" to email,
+                    "phoneNumber" to phoneNumber
+                )
+                onSave(updatedData, imageUri)
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 //@Preview

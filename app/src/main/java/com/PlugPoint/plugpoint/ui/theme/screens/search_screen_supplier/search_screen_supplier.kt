@@ -77,7 +77,7 @@ fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplier
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(searchResults) { user ->
-                        UserRow(user = user)
+                        UserRow(user = user, navController = navController)
                     }
                 }
             }
@@ -118,21 +118,30 @@ fun SearchBarUI(searchText: String, onSearchTextChanged: (String) -> Unit) {
 
 
 
+data class UserRowData(
+    val name: String,
+    val type: String,
+    val imageUrl: String,
+    val route: String
+)
+
 @Composable
-fun UserRow(user: SearchSupplierAuthViewModel.User) {
-    val (name, type, imageUrl) = when (user) {
+fun UserRow(user: SearchSupplierAuthViewModel.User, navController: NavController) {
+    val userRowData = when (user) {
         is SearchSupplierAuthViewModel.User.Supplier -> {
-            Triple(
-                "${user.user.firstName} ${user.user.lastName}",
-                "Supplier",
-                user.user.imageUrl
+            UserRowData(
+                name = "${user.user.firstName} ${user.user.lastName}",
+                type = "Supplier",
+                imageUrl = user.user.imageUrl,
+                route = "supplier_view/${user.id}/supplier" // Pass searcher's role
             )
         }
         is SearchSupplierAuthViewModel.User.Consumer -> {
-            Triple(
-                "${user.user.firstName} ${user.user.lastName}",
-                "Consumer",
-                user.user.imageUrl
+            UserRowData(
+                name = "${user.user.firstName} ${user.user.lastName}",
+                type = "Consumer",
+                imageUrl = user.user.imageUrl,
+                route = "consumer_view/${user.id}/supplier" // Pass searcher's role
             )
         }
     }
@@ -140,12 +149,12 @@ fun UserRow(user: SearchSupplierAuthViewModel.User) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* You can handle profile navigation here */ }
+            .clickable { navController.navigate(userRowData.route) }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = rememberAsyncImagePainter(model = imageUrl),
+            painter = rememberAsyncImagePainter(model = userRowData.imageUrl),
             contentDescription = "Profile Picture",
             modifier = Modifier
                 .size(48.dp)
@@ -156,13 +165,13 @@ fun UserRow(user: SearchSupplierAuthViewModel.User) {
 
         Column {
             Text(
-                text = name,
+                text = userRowData.name,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = type,
+                text = userRowData.type,
                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
             )
         }

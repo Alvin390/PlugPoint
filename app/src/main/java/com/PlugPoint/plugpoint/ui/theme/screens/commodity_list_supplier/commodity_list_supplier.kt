@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -131,7 +132,8 @@ fun SupplierCommodityScreen(
                         commodity = commodity,
                         onClick = {
                             selectedCommodity = commodity
-                            showDialog = true
+                            showDialog = false
+                            showActionDialog=true
                         }
                     )
                 }
@@ -227,8 +229,15 @@ fun PostCommodityDialog(
     initialCommodity: Commodity? = null
 ) {
     var name by remember { mutableStateOf(initialCommodity?.name ?: "") }
-    var quantity by remember { mutableStateOf(initialCommodity?.quantity?.toString() ?: "") }
-    var cost by remember { mutableStateOf(initialCommodity?.cost?.toString() ?: "") }
+    var quantity by remember { mutableStateOf(initialCommodity?.quantity ?: "") }
+    var cost by remember { mutableStateOf(initialCommodity?.cost ?: "") }
+    var currency by remember { mutableStateOf(initialCommodity?.currency ?: "Ksh") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        imageUri = uri
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -252,33 +261,114 @@ fun PostCommodityDialog(
             }
         },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Image Upload Section
+                Button(
+                    onClick = { launcher.launch("image/*") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(Color(0xFFFFA500), Color(0xFFFF8C00))
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
+                    Text("Upload Image", color = Color.White)
+                }
+
+                imageUri?.let {
+                    Image(
+                        painter = rememberAsyncImagePainter(it),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                // Name, Quantity, Cost, and Currency Fields
                 TextField(value = name, onValueChange = { name = it }, label = { Text("Name") })
                 TextField(value = quantity, onValueChange = { quantity = it }, label = { Text("Quantity") })
                 TextField(value = cost, onValueChange = { cost = it }, label = { Text("Cost per unit") })
+
+                // Currency Dropdown
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Currency: ", fontWeight = FontWeight.Bold)
+                    Box {
+                        Text(
+                            text = currency,
+                            modifier = Modifier
+                                .clickable { expanded = true }
+                                .padding(8.dp)
+                                .background(Color.LightGray, shape = RoundedCornerShape(4.dp))
+                        )
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Ksh") },
+                                onClick = {
+                                    currency = "Ksh"
+                                    expanded = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("$") },
+                                onClick = {
+                                    currency = "$"
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (name.isNotBlank() && quantity.isNotBlank() && cost.isNotBlank()) {
-                    onPost(
-                        Commodity(
-                            id = initialCommodity?.id ?: "",
-                            name = name,
-                            quantity = quantity.toInt().toString(),
-                            cost = cost.toDouble().toString(),
-                            imageUri = initialCommodity?.imageUri,
-                            booked = initialCommodity?.booked ?: false
+            Button(
+                onClick = {
+                    if (name.isNotBlank() && quantity.isNotBlank() && cost.isNotBlank()) {
+                        onPost(
+                            Commodity(
+                                id = initialCommodity?.id ?: "",
+                                name = name,
+                                quantity = quantity,
+                                cost = cost,
+                                currency = currency,
+                                imageUri = imageUri?.toString(),
+                                booked = initialCommodity?.booked ?: false
+                            )
                         )
+                    }
+                },
+                modifier = Modifier
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFFFFA500), Color(0xFFFF8C00))
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     )
-                }
-            }) {
-                Text("Save")
+            ) {
+                Text("Save", color = Color.White)
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFFFFA500), Color(0xFFFF8C00))
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+            ) {
+                Text("Cancel", color = Color.White)
             }
         }
     )
@@ -398,7 +488,7 @@ fun CommodityListItem(commodity: Commodity, onClick: () -> Unit) {
             )
         }
         Text(
-            text = "${commodity.cost} per unit",
+            text = "${commodity.currency} ${commodity.cost} per unit",
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
             color = if (commodity.booked) Color.Gray else Color.Black,

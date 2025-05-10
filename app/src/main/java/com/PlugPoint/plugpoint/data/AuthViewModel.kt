@@ -207,6 +207,38 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
         return null
     }
 
+    fun updateUserDetails(
+        userId: String,
+        userType: String,
+        updatedData: Map<String, String>,
+        imageUri: Uri?,
+        onUpdateSuccess: () -> Unit,
+        onUpdateFailure: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            val collection = if (userType == "supplier") "suppliers" else "consumers"
+
+            if (imageUri != null) {
+                imgurViewModel.uploadImage(imageUri, context, authorization = "511479d0432ec58")
+                val uploadState = imgurViewModel.uploadState.first()
+                if (uploadState is ImgurUploadState.Success) {
+                    val updatedDataWithImage = updatedData.toMutableMap()
+                    updatedDataWithImage["imageUrl"] = uploadState.imageUrl
+
+                    firestore.collection(collection).document(userId).update(updatedDataWithImage)
+                        .addOnSuccessListener { onUpdateSuccess() }
+                        .addOnFailureListener { e -> onUpdateFailure(e.message ?: "Update failed.") }
+                } else if (uploadState is ImgurUploadState.Error) {
+                    onUpdateFailure(uploadState.message)
+                }
+            } else {
+                firestore.collection(collection).document(userId).update(updatedData)
+                    .addOnSuccessListener { onUpdateSuccess() }
+                    .addOnFailureListener { e -> onUpdateFailure(e.message ?: "Update failed.") }
+            }
+        }
+    }
+
     sealed class RegistrationState {
         object Idle : RegistrationState()
         data class Success(val userType: String) : RegistrationState()

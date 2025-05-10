@@ -18,8 +18,15 @@ class SearchSupplierAuthViewModel : ViewModel() {
     val searchResults: StateFlow<List<User>> = _searchResults
 
     sealed class User {
-        data class Supplier(val user: UserSupplier) : User()
-        data class Consumer(val user: UserConsumer) : User()
+        data class Supplier(
+            val user: UserSupplier,
+            val id: String // Add id field
+        ) : User()
+
+        data class Consumer(
+            val user: UserConsumer,
+            val id: String // Add id field
+        ) : User()
     }
 
     fun searchUsers(query: String, onError: (String) -> Unit = {}) {
@@ -33,7 +40,7 @@ class SearchSupplierAuthViewModel : ViewModel() {
                         .await()
                         .documents.mapNotNull { document ->
                             document.toObject(UserSupplier::class.java)?.let { user ->
-                                User.Supplier(user)
+                                User.Supplier(user = user, id = document.id) // Pass document.id as id
                             }
                         }
                 }
@@ -44,7 +51,7 @@ class SearchSupplierAuthViewModel : ViewModel() {
                         .await()
                         .documents.mapNotNull { document ->
                             document.toObject(UserConsumer::class.java)?.let { user ->
-                                User.Consumer(user)
+                                User.Consumer(user = user, id = document.id) // Pass document.id as id
                             }
                         }
                 }

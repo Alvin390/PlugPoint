@@ -3,6 +3,7 @@ package com.PlugPoint.plugpoint.ui.theme.screens.my_profile
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
+//import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import coil3.Uri
 import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.models.UserSupplier
@@ -56,6 +58,8 @@ fun SupplierProfileScreen(navController: NavController,
                           userId: String) {
     val userSupplier by authViewModel.supplierDetails.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+
 
     // Handle back press
     BackHandler {
@@ -162,7 +166,9 @@ fun SupplierProfileScreen(navController: NavController,
                                 "Commodities" -> navController.navigate("$ROUTE_COMMODITY_LIST/$userId")
                                 "Accepted Applications" -> { /* Add navigation or logic here */ }
                                 "All Applications" -> { /* Add navigation or logic here */ }
-                                "Edit Profile" -> { /* Add navigation or logic here */ }
+                                "Edit Profile" -> {
+                                    showEditDialog = true
+                                }
                                 "Settings" -> navController.navigate(ROUTE_SETTINGS)
                                 "Logout" -> {
                                     authViewModel.logoutUser {
@@ -177,7 +183,82 @@ fun SupplierProfileScreen(navController: NavController,
             }
         }
     }
+
+    if (showEditDialog && userSupplier != null) {
+        EditSupplierProfileDialog(
+            userSupplier = userSupplier,
+            onDismiss = { showEditDialog = false },
+            onSave = { updatedData, imageUri ->
+                authViewModel.updateUserDetails(
+                    userId = userId,
+                    userType = "supplier",
+                    updatedData = updatedData,
+                    imageUri = imageUri,
+                    onUpdateSuccess = { showEditDialog = false },
+                    onUpdateFailure = { error -> println("Error: $error") }
+                )
+            }
+        )
+    }
 }
+
+@Composable
+fun EditSupplierProfileDialog(
+    userSupplier: UserSupplier,
+    onDismiss: () -> Unit,
+    onSave: (Map<String, String>, Uri?) -> Unit
+) {
+    var firstName by remember { mutableStateOf(userSupplier.firstName) }
+    var lastName by remember { mutableStateOf(userSupplier.lastName) }
+    var companyName by remember { mutableStateOf(userSupplier.companyName) }
+    var county by remember { mutableStateOf(userSupplier.county) }
+    var category by remember { mutableStateOf(userSupplier.category) }
+    var email by remember { mutableStateOf(userSupplier.email) }
+    var phoneNumber by remember { mutableStateOf(userSupplier.phoneNumber) }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Profile") },
+        text = {
+            Column {
+                TextField(value = firstName, onValueChange = { firstName = it }, label = { Text("First Name") })
+                TextField(value = lastName, onValueChange = { lastName = it }, label = { Text("Last Name") })
+                TextField(value = companyName, onValueChange = { companyName = it }, label = { Text("Company Name") })
+                TextField(value = county, onValueChange = { county = it }, label = { Text("County") })
+                TextField(value = category, onValueChange = { category = it }, label = { Text("Category") })
+                TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
+                TextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") })
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { /* Logic to pick an image */ }) {
+                    Text("Upload Photo")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val updatedData = mapOf(
+                    "firstName" to firstName,
+                    "lastName" to lastName,
+                    "companyName" to companyName,
+                    "county" to county,
+                    "category" to category,
+                    "email" to email,
+                    "phoneNumber" to phoneNumber
+                )
+                onSave(updatedData, imageUri)
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
 @Composable
 fun ProfileDetails(userSupplier: UserSupplier) {
     val name = remember(userSupplier) { "${userSupplier.firstName} ${userSupplier.lastName}" }
@@ -361,3 +442,4 @@ fun FeatureCard(
 //private fun supplier_profile_preview() {
 //    SupplierProfileScreen(rememberNavController(), viewModel = AuthViewModel(), userId = "userId")
 //}
+
