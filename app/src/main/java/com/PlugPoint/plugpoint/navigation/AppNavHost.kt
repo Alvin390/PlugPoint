@@ -39,6 +39,9 @@ import com.PlugPoint.plugpoint.ui.theme.screens.splashscreen.SplashScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.supplier_view.SupplierView
 import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_view.CommodityView
+import com.PlugPoint.plugpoint.ui.theme.screens.chat_screen.ChatScreen
+import com.PlugPoint.plugpoint.ui.theme.screens.chat_screen.ChatScreen2
+import com.PlugPoint.plugpoint.data.ChatViewModel
 
 @Composable
 fun AppNavHost(
@@ -51,6 +54,7 @@ fun AppNavHost(
     authViewModel: AuthViewModel
 ) {
     val context = LocalContext.current
+    val chatViewModel = ChatViewModel()
 
     NavHost(navController = navController, modifier = modifier, startDestination = startDestination) {
         composable(ROUTE_LOGIN) {
@@ -108,6 +112,13 @@ fun AppNavHost(
             val supplierId = backStackEntry.arguments?.getString("supplierId") ?: ""
             val searcherRole = backStackEntry.arguments?.getString("searcherRole") ?: "consumer"
             CommodityView(navController, supplierId = supplierId, searcherRole = searcherRole)
+        }
+        composable(ROUTE_CHAT_SCREEN) {
+            ChatScreen(navController = navController, chatViewModel = chatViewModel)
+        }
+        composable("$ROUTE_CHAT_SCREEN_2/{userId}") { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            ChatScreen2(navController = navController, chatViewModel = chatViewModel, userId = userId)
         }
     }
 }

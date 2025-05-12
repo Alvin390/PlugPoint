@@ -364,7 +364,7 @@ fun SupplierBottomNavBar(navController: NavController, userId: String) {
         "$ROUTE_PROFILE_SUPPLIER/$userId", // Full route for "My Profile"
         "$ROUTE_SEARCH_SUPPLIER/$userId", // Full route for "Search"
         null,                             // Notifications (not built yet)
-        null                              // Chat (not built yet)
+        "chat_screen"
     )
 
     val currentRoute = navController.currentBackStackEntry?.destination?.route

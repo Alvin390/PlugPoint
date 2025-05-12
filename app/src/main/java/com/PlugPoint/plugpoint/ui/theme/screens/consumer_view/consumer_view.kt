@@ -92,7 +92,9 @@ fun ConsumerView(
                     horizontalArrangement = Arrangement.spacedBy(24.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    FeatureCard(title = "Chat", iconRes = R.drawable.chat, onClick = { /* Chat logic */ })
+                    FeatureCard(title = "Chat", iconRes = R.drawable.chat, onClick = {
+                        navController.navigate("chat_screen_2/${consumer?.id}")
+                    })
                     FeatureCard(title = "Call", iconRes = R.drawable.dial) {
                         val intent = Intent(Intent.ACTION_DIAL).apply {
                             data = "tel:${it.phoneNumber}".toUri()

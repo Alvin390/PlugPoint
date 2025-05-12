@@ -278,7 +278,7 @@ fun ConsumerBottomNavBar(navController: NavController, userId: String) {
         "$ROUTE_PROFILE_CONSUMER/$userId", // Full route for "My Profile"
         "$ROUTE_SEARCH_CONSUMER/$userId", // Full route for "Search"
         null,                             // Notifications (not built yet)
-        null                              // Chat (not built yet)
+        "chat_screen"
     )
 
     val currentRoute = navController.currentBackStackEntry?.destination?.route
@@ -409,4 +409,5 @@ fun EditConsumerProfileDialog(
 //private fun consumer_profile_preview() {
 //    ConsumerProfileScreen(rememberNavController(),userId = "sampleUserId",viewModel = AuthViewModel())
 //}
+
 
