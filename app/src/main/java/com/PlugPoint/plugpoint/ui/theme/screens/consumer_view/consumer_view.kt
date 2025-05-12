@@ -27,6 +27,7 @@ import com.PlugPoint.plugpoint.data.UserSearchViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerTopBar
 import androidx.core.net.toUri
+import coil.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierTopBar
 
@@ -68,7 +69,9 @@ fun ConsumerView(
                 ) {
                     // Profile Image
                     Image(
-                        painter = painterResource(id = R.drawable.profile_placeholder),
+                        painter = rememberAsyncImagePainter(
+                            model = consumer?.imageUrl ?: R.drawable.profile_placeholder
+                        ),
                         contentDescription = "Profile Picture",
                         modifier = Modifier
                             .size(64.dp)

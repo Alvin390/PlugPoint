@@ -3,7 +3,7 @@ package com.PlugPoint.plugpoint.ui.theme.screens.my_profile
 import androidx.activity.compose.BackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
-//import android.net.Uri
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -35,7 +35,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
-import coil3.Uri
 import com.PlugPoint.plugpoint.R
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.models.UserSupplier
@@ -186,7 +185,7 @@ fun SupplierProfileScreen(navController: NavController,
 
     if (showEditDialog && userSupplier != null) {
         EditSupplierProfileDialog(
-            userSupplier = userSupplier,
+            userSupplier = userSupplier!!,
             onDismiss = { showEditDialog = false },
             onSave = { updatedData, imageUri ->
                 authViewModel.updateUserDetails(
@@ -275,7 +274,7 @@ fun ProfileDetails(userSupplier: UserSupplier) {
     ) {
         Image(
             painter = rememberAsyncImagePainter(imageUrl),
-            contentDescription = "Profile",
+            contentDescription = "Profile Picture",
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)

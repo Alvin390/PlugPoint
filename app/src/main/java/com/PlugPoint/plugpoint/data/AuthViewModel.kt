@@ -225,7 +225,7 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
                     val updatedDataWithImage = updatedData.toMutableMap()
                     updatedDataWithImage["imageUrl"] = uploadState.imageUrl
 
-                    firestore.collection(collection).document(userId).update(updatedDataWithImage)
+                    firestore.collection(collection).document(userId).update(updatedDataWithImage as Map<String, Any>)
                         .addOnSuccessListener { onUpdateSuccess() }
                         .addOnFailureListener { e -> onUpdateFailure(e.message ?: "Update failed.") }
                 } else if (uploadState is ImgurUploadState.Error) {

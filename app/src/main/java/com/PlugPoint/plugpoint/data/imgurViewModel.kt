@@ -17,13 +17,12 @@ import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 
 class ImgurViewModel(private val imgurAPI: ImgurAPI) : ViewModel() {
-
     private val _uploadState = MutableStateFlow<ImgurUploadState>(ImgurUploadState.Idle)
     val uploadState: StateFlow<ImgurUploadState> get() = _uploadState
 
     fun uploadImage(uri: Uri?, context: Context, authorization: String) {
         if (uri == null) {
-            _uploadState.value = ImgurUploadState.Error("Invalid URI: URI is null")
+            _uploadState.value = ImgurUploadState.Error("Invalid URI")
             return
         }
         viewModelScope.launch(Dispatchers.IO) {
@@ -37,12 +36,10 @@ class ImgurViewModel(private val imgurAPI: ImgurAPI) : ViewModel() {
                 if (response.isSuccessful && response.body()?.success == true) {
                     _uploadState.value = ImgurUploadState.Success(response.body()!!.data.link)
                 } else {
-                    _uploadState.value = ImgurUploadState.Error("Failed to upload image: ${response.message()}")
+                    _uploadState.value = ImgurUploadState.Error("Failed to upload image")
                 }
             } catch (e: Exception) {
-                _uploadState.value = ImgurUploadState.Error("Error: ${e.message}")
-            }finally {
-                _uploadState.value = ImgurUploadState.Idle // Reset state after upload
+                _uploadState.value = ImgurUploadState.Error("Failed to upload image. Please try again.")
             }
         }
     }

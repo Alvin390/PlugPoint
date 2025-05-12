@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -37,9 +38,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
-import coil3.Uri
 import com.PlugPoint.plugpoint.R
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.PlugPoint.plugpoint.data.AuthViewModel
+import com.PlugPoint.plugpoint.data.ImgurUploadState
+import com.PlugPoint.plugpoint.data.ImgurViewModel
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.navigation.ROUTE_COMMODITY_LIST
 import com.PlugPoint.plugpoint.navigation.ROUTE_LOGIN
@@ -49,8 +54,11 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
+import com.PlugPoint.plugpoint.networks.ImgurAPI
+import com.PlugPoint.plugpoint.networks.ImgurAPIFactory
 import com.PlugPoint.plugpoint.ui.theme.gray
 import com.PlugPoint.plugpoint.ui.theme.red
+import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
 import kotlin.text.category
 import kotlin.text.ifEmpty
 
@@ -152,14 +160,14 @@ fun ConsumerProfileScreen(navController: NavController,
 
     if (showEditDialog && userConsumer != null) {
         EditConsumerProfileDialog(
-            userConsumer = userConsumer,
+            userConsumer = userConsumer!!,
             onDismiss = { showEditDialog = false },
             onSave = { updatedData, imageUri ->
                 authViewModel.updateUserDetails(
                     userId = userId,
                     userType = "consumer",
                     updatedData = updatedData,
-                    imageUri = imageUri,
+                    imageUri = imageUri as Uri?,
                     onUpdateSuccess = { showEditDialog = false },
                     onUpdateFailure = { error -> println("Error: $error") }
                 )
@@ -211,7 +219,7 @@ fun ProfileDetails(userConsumer: UserConsumer) {
     ) {
         Image(
             painter = rememberAsyncImagePainter(imageUrl),
-            contentDescription = "Profile",
+            contentDescription = "Profile Picture",
             modifier = Modifier
                 .size(64.dp)
                 .clip(CircleShape)
@@ -340,7 +348,7 @@ fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavCon
 fun EditConsumerProfileDialog(
     userConsumer: UserConsumer,
     onDismiss: () -> Unit,
-    onSave: (Map<String, String>, Uri?) -> Unit
+    onSave: (Map<String, String>, Uri?) -> Unit // Updated to accept Uri? instead of String?
 ) {
     var firstName by remember { mutableStateOf(userConsumer.firstName) }
     var lastName by remember { mutableStateOf(userConsumer.lastName) }
@@ -349,6 +357,13 @@ fun EditConsumerProfileDialog(
     var email by remember { mutableStateOf(userConsumer.email) }
     var phoneNumber by remember { mutableStateOf(userConsumer.phoneNumber) }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    val imgurViewModel: ImgurViewModel = viewModel(factory = ImgurViewModelFactory(ImgurAPIFactory.create()))
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        imageUri = uri
+        imgurViewModel.uploadImage(uri, context, "Client-ID 7d779f374d40497")
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -362,7 +377,7 @@ fun EditConsumerProfileDialog(
                 TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
                 TextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") })
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { /* Logic to pick an image */ }) {
+                Button(onClick = { launcher.launch("image/*") }) {
                     Text("Upload Photo")
                 }
             }
@@ -377,7 +392,7 @@ fun EditConsumerProfileDialog(
                     "email" to email,
                     "phoneNumber" to phoneNumber
                 )
-                onSave(updatedData, imageUri)
+                onSave(updatedData, imageUri) // Pass Uri? directly
             }) {
                 Text("Save")
             }
@@ -389,7 +404,6 @@ fun EditConsumerProfileDialog(
         }
     )
 }
-
 //@Preview
 //@Composable
 //private fun consumer_profile_preview() {

@@ -46,6 +46,8 @@ import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchBarUI
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
@@ -154,7 +156,11 @@ fun UserRow(user: SearchSupplierAuthViewModel.User, navController: NavController
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = rememberAsyncImagePainter(model = userRowData.imageUrl),
+            painter = if (userRowData.imageUrl.isNotEmpty()) {
+                rememberAsyncImagePainter(userRowData.imageUrl)
+            } else {
+                painterResource(id = com.PlugPoint.plugpoint.R.drawable.default_profile_picture)
+            },
             contentDescription = "Profile Picture",
             modifier = Modifier
                 .size(48.dp)
