@@ -15,4 +15,5 @@ data class UserConsumer(
     val imageUrl: String="",
     var imageUri: String? = null,
     var phoneNumber: String = "",
+    val id: String = ""
 )

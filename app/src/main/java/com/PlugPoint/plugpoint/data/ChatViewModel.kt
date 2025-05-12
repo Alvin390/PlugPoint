@@ -13,13 +13,17 @@ class ChatViewModel : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
     private val _chatUsers = MutableStateFlow<List<ChatUser>>(emptyList())
     val chatUsers: StateFlow<List<ChatUser>> = _chatUsers
-    private fun getCurrentUserId(): String {
-        return FirebaseAuth.getInstance().currentUser?.uid ?: throw IllegalStateException("User not logged in")
+    internal fun getCurrentUserId(): String? {
+        return FirebaseAuth.getInstance().currentUser?.uid
     }
 
     fun getMessages(userId: String): StateFlow<List<ChatMessage>> {
         val messagesFlow = MutableStateFlow<List<ChatMessage>>(emptyList())
         val currentUserId = getCurrentUserId()
+        if (currentUserId == null) {
+            println("Error: User not logged in")
+            return messagesFlow
+        }
         db.collection("messages")
             .whereIn("receiverId", listOf(userId, currentUserId))
             .addSnapshotListener { snapshot, error ->
@@ -33,7 +37,11 @@ class ChatViewModel : ViewModel() {
     }
 
     fun sendMessage(receiverId: String, text: String) {
-        val currentUserId = getCurrentUserId() // Implement this method to fetch the logged-in user's ID
+        val currentUserId = getCurrentUserId()
+        if (currentUserId == null) {
+            println("Error: User not logged in")
+            return
+        }
         val message = ChatMessage(
             senderId = currentUserId,
             receiverId = receiverId,
@@ -41,6 +49,32 @@ class ChatViewModel : ViewModel() {
             timestamp = System.currentTimeMillis()
         )
         db.collection("messages").add(message)
+    }
+
+    private val _searchResults = MutableStateFlow<List<ChatUser>>(emptyList())
+    val searchResults: StateFlow<List<ChatUser>> = _searchResults
+    val isLoading = MutableStateFlow(false)
+    val errorMessage = MutableStateFlow<String?>(null)
+
+
+    fun searchUsersByName(query: String) {
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            return
+        }
+
+        val lowercaseQuery = query.lowercase()
+        db.collection("users")
+            .whereGreaterThanOrEqualTo("name", lowercaseQuery)
+            .whereLessThanOrEqualTo("name", lowercaseQuery + "\uf8ff")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    println("Error searching users: ${error.message}")
+                    _searchResults.value = emptyList()
+                    return@addSnapshotListener
+                }
+                _searchResults.value = snapshot?.toObjects(ChatUser::class.java) ?: emptyList()
+            }
     }
 
     init {

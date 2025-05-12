@@ -22,6 +22,13 @@ fun ChatScreen2(navController: NavController, chatViewModel: ChatViewModel, user
     val messages by chatViewModel.getMessages(userId).collectAsState(initial = emptyList())
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+        val currentUserId = chatViewModel.getCurrentUserId()
+        if (currentUserId == null) {
+            LaunchedEffect(Unit) {
+                navController.navigate("login") // Redirect to login screen
+            }
+            return
+        }
 
     LaunchedEffect(messages) {
         if (messages.isNotEmpty()) {
