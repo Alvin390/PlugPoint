@@ -63,7 +63,7 @@ fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplier
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(searchResults) { user ->
-                        UserRow(user = user, navController = navController)
+                        UserRow(user = user, navController = navController, searcherRole = "consumer")
                     }
                 }
             }

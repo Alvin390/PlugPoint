@@ -45,6 +45,7 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
+import com.PlugPoint.plugpoint.navigation.ROUTE_SUPPLIER_ALL_REQUESTS
 import com.PlugPoint.plugpoint.ui.theme.gray
 import com.PlugPoint.plugpoint.ui.theme.red
 import com.PlugPoint.plugpoint.ui.theme.tomato
@@ -150,8 +151,8 @@ fun SupplierProfileScreen(navController: NavController,
                 items(
                     listOf(
                         "Commodities" to R.drawable.commodities,
-                        "Accepted Applications" to R.drawable.acceptedapplications,
-                        "All Applications" to R.drawable.applications,
+                        "Accepted Requests" to R.drawable.acceptedapplications,
+                        "All Requests" to R.drawable.applications,
                         "Edit Profile" to R.drawable.editprofilesupply,
                         "Settings" to R.drawable.settingssupply,
                         "Logout" to R.drawable.logoutsupply
@@ -163,8 +164,8 @@ fun SupplierProfileScreen(navController: NavController,
                         onClick = {
                             when (title) {
                                 "Commodities" -> navController.navigate("$ROUTE_COMMODITY_LIST/$userId")
-                                "Accepted Applications" -> { /* Add navigation or logic here */ }
-                                "All Applications" -> { /* Add navigation or logic here */ }
+                                "Accepted Requests" -> { /* Add navigation or logic here */ }
+                                "All Requests" -> navController.navigate("$ROUTE_SUPPLIER_ALL_REQUESTS/$userId")
                                 "Edit Profile" -> {
                                     showEditDialog = true
                                 }

@@ -43,6 +43,8 @@ import com.PlugPoint.plugpoint.ui.theme.screens.chat_screen.ChatScreen2
 import com.PlugPoint.plugpoint.data.ChatViewModel
 import com.PlugPoint.plugpoint.navigation.ROUTE_CHAT_SCREEN
 import com.PlugPoint.plugpoint.navigation.ROUTE_CHAT_SCREEN_2
+import com.PlugPoint.plugpoint.navigation.ROUTE_SUPPLIER_ALL_REQUESTS
+import com.PlugPoint.plugpoint.ui.theme.screens.supplier_all_requests.SupplierAllRequestsScreen
 
 @Composable
 fun AppNavHost(
@@ -104,7 +106,7 @@ fun AppNavHost(
             val searcherRole = backStackEntry.arguments?.getString("searcherRole") ?: "consumer"
             ConsumerView(navController, userId = userId, searcherRole = searcherRole)
         }
-        composable("$ROUTE_SUPPLIER_VIEW/{userId}/{searcherRole}") { backStackEntry ->
+        composable("$ROUTE_SUPPLIER_VIEW/{userId}?searcherRole={searcherRole}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val searcherRole = backStackEntry.arguments?.getString("searcherRole") ?: "supplier"
             SupplierView(navController, userId = userId, searcherRole = searcherRole)
@@ -125,6 +127,10 @@ fun AppNavHost(
             } else {
                 ChatScreen2(navController = navController, chatViewModel = chatViewModel, userId = userId)
             }
+        }
+        composable("$ROUTE_SUPPLIER_ALL_REQUESTS/{supplierId}") { backStackEntry ->
+            val supplierId = backStackEntry.arguments?.getString("supplierId") ?: ""
+            SupplierAllRequestsScreen(supplierId = supplierId)
         }
     }
 }

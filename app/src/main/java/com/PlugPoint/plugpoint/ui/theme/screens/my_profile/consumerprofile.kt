@@ -140,8 +140,8 @@ fun ConsumerProfileScreen(navController: NavController,
             ) {
                 items(
                     listOf(
-                        Triple("Applications Made", R.drawable.applicationsmadeconsumer, ROUTE_COMMODITY_LIST),
-                        Triple("Accepted Applications", R.drawable.acceptedapplications, ROUTE_NOTIFICATION),
+                        Triple("Requests Made", R.drawable.applicationsmadeconsumer, ROUTE_COMMODITY_LIST),
+                        Triple("Accepted Requests", R.drawable.acceptedapplications, ROUTE_NOTIFICATION),
                         Triple("Saved Suppliers", R.drawable.savedsuppliersconsumer, ROUTE_SEARCH_CONSUMER),
                         Triple("Edit Profile", R.drawable.editprofileconsumer, ROUTE_PROFILE_CONSUMER),
                         Triple("Settings", R.drawable.settingsconsumer, ROUTE_SETTINGS),

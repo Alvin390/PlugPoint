@@ -67,7 +67,6 @@ fun ConsumerView(
                         .padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Profile Image
                     Image(
                         painter = rememberAsyncImagePainter(
                             model = consumer?.imageUrl ?: R.drawable.profile_placeholder
@@ -78,7 +77,6 @@ fun ConsumerView(
                             .clip(RoundedCornerShape(8.dp))
                     )
                     Spacer(modifier = Modifier.width(16.dp))
-                    // Profile Details
                     Column {
                         Text("${it.firstName} ${it.lastName}", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         Text("Category: ${it.category}", fontSize = 14.sp, color = Color.Gray)

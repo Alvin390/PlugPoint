@@ -79,7 +79,7 @@ fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplier
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(searchResults) { user ->
-                        UserRow(user = user, navController = navController)
+                        UserRow(user = user, navController = navController, searcherRole = "supplier") // Pass the searcherRole
                     }
                 }
             }
@@ -128,14 +128,14 @@ data class UserRowData(
 )
 
 @Composable
-fun UserRow(user: SearchSupplierAuthViewModel.User, navController: NavController) {
+fun UserRow(user: SearchSupplierAuthViewModel.User, navController: NavController, searcherRole: String) {
     val userRowData = when (user) {
         is SearchSupplierAuthViewModel.User.Supplier -> {
             UserRowData(
                 name = "${user.user.firstName} ${user.user.lastName}",
                 type = "Supplier",
                 imageUrl = user.user.imageUrl,
-                route = "supplier_view/${user.id}/supplier" // Pass searcher's role
+                route = "supplier_view/${user.id}?searcherRole=$searcherRole"
             )
         }
         is SearchSupplierAuthViewModel.User.Consumer -> {
@@ -143,7 +143,7 @@ fun UserRow(user: SearchSupplierAuthViewModel.User, navController: NavController
                 name = "${user.user.firstName} ${user.user.lastName}",
                 type = "Consumer",
                 imageUrl = user.user.imageUrl,
-                route = "consumer_view/${user.id}/supplier" // Pass searcher's role
+                route = "consumer_view/${user.id}?searcherRole=$searcherRole"
             )
         }
     }
