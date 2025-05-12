@@ -7,7 +7,8 @@ data class Commodity(
     var cost: String = "",
     var currency: String = "",
     var imageUri: String? = null,
-    var booked: Boolean = false
+    var booked: Boolean = false,
+    var supplierId: String = ""
 ) {
     fun updateBooked(isBooked: Boolean): Commodity {
         return this.copy(booked = isBooked)

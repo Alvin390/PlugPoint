@@ -47,20 +47,24 @@ fun CommodityView(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp)
-            ) {
-                items(commodities) { commodity ->
-                    CommodityListItem(
-                        commodity = commodity,
-                        onClick = {
-                            if (searcherRole == "consumer") {
-                                // Placeholder for click logic
-                            }
-                        },
-                        clickable = searcherRole == "consumer"
-                    )
+            if (commodities.isEmpty()) {
+                Text("No commodities available", modifier = Modifier.padding(16.dp))
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    items(commodities) { commodity ->
+                        CommodityListItem(
+                            commodity = commodity,
+                            onClick = {
+                                if (searcherRole == "consumer") {
+                                    // Placeholder for click logic
+                                }
+                            },
+                            clickable = searcherRole == "consumer"
+                        )
+                    }
                 }
             }
         }

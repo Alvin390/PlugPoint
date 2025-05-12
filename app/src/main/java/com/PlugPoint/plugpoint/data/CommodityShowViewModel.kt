@@ -22,6 +22,8 @@ class CommodityShowViewModel : ViewModel() {
                     .whereEqualTo("supplierId", supplierId)
                     .get()
                     .await()
+                println("Snapshot size: ${snapshot.size()}")
+                snapshot.documents.forEach { println("Doc: ${it.data}") }
                 _commodities.value = snapshot.toObjects(Commodity::class.java)
                 if (_commodities.value.isEmpty()) {
                     println("No commodities found for supplierId: $supplierId")
