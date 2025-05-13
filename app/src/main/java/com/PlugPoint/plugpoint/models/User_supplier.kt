@@ -1,7 +1,5 @@
 package com.PlugPoint.plugpoint.models
 
-import retrofit2.http.Url
-
 data class UserSupplier(
     var firstName: String = "",
     var lastName: String = "",
@@ -12,8 +10,12 @@ data class UserSupplier(
     var email: String = "",
     var password: String = "",
     var confirmPassword: String = "",
-    val imageUrl: String="",
+    val imageUrl: String = "",
     var imageUri: String? = null,
     var phoneNumber: String = "",
-    val id: String = "",
-)
+    val id: String = ""
+) : Comparable<UserSupplier> {
+    override fun compareTo(other: UserSupplier): Int {
+        return this.companyName.compareTo(other.companyName) // Sort by companyName
+    }
+}

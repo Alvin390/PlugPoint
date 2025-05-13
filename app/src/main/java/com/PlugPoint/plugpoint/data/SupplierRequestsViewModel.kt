@@ -15,6 +15,7 @@ data class RequestWithNames(
     val request: Requests,
     var consumerName: String = "",
     var commodityName: String = "",
+    var currency: String = request.currency, // Added currency field
     var isCompleted: Boolean = false
 )
 
@@ -25,64 +26,56 @@ class SupplierRequestsViewModel : ViewModel() {
     private val _requests = MutableStateFlow<List<RequestWithNames>>(emptyList())
     val requests: StateFlow<List<RequestWithNames>> = _requests
 
+
+
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
+
 
 
     fun fetchRequestsForSupplier(supplierId: String) {
         _isLoading.value = true
         viewModelScope.launch {
             try {
-                println("Fetching requests for supplier ID: '$supplierId'")
-
-                // Now, let's do our query with the snapshot listener
                 firestore.collection("requests")
-                    // Check if supplierId is empty in the database as shown in logs
-                    .whereEqualTo("supplierId", if (supplierId.isBlank()) "" else supplierId)
+                    .whereEqualTo("supplierId", supplierId)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
-                            println("Error in snapshot listener: ${error.message}")
                             _isLoading.value = false
                             return@addSnapshotListener
                         }
 
-                        if (snapshot != null) {
-                            println("Snapshot exists, is empty: ${snapshot.isEmpty}")
-                            if (!snapshot.isEmpty) {
-                                val requestList = snapshot.toObjects(Requests::class.java)
-                                println("Fetched ${requestList.size} requests")
+                        if (snapshot != null && !snapshot.isEmpty) {
+                            val requestList = snapshot.toObjects(Requests::class.java)
+                            val requestsWithNames = requestList.map { 
+                                RequestWithNames(
+                                    request = it,
+                                    consumerName = "Loading...", // Placeholder
+                                    commodityName = "Loading..." // Placeholder
+                                ) 
+                            }
+                            _requests.value = requestsWithNames
 
-                                // Convert to RequestWithNames objects
-                                val requestsWithNames = requestList.map { RequestWithNames(request = it) }
-                                _requests.value = requestsWithNames
-
-                                // Load names for each request
-                                requestsWithNames.forEach { requestWithNames ->
-                                    loadConsumerName(requestWithNames)
-                                    loadCommodityName(requestWithNames)
-                                }
-                            } else {
-                                println("No documents match the query")
-                                _requests.value = emptyList()
+                            // Load names for each request
+                            requestsWithNames.forEach { requestWithNames ->
+                                loadConsumerName(requestWithNames)
+                                loadCommodityName(requestWithNames)
                             }
                         } else {
-                            println("Snapshot is null")
                             _requests.value = emptyList()
                         }
                         _isLoading.value = false
                     }
             } catch (e: Exception) {
-                println("Exception in fetchRequestsForSupplier: ${e.message}")
-                e.printStackTrace()
                 _isLoading.value = false
             }
         }
     }
 
-    private fun loadConsumerName(requestWithNames: RequestWithNames) {
+    fun loadConsumerName(requestWithNames: RequestWithNames) {
         val consumerId = requestWithNames.request.consumerId
         if (consumerId.isBlank()) {
-            requestWithNames.consumerName = "Unknown"
+            updateRequestWithNames(requestWithNames) { it.consumerName = "Unknown" }
             return
         }
 
@@ -91,25 +84,18 @@ class SupplierRequestsViewModel : ViewModel() {
             .get()
             .addOnSuccessListener { snapshot ->
                 val consumer = snapshot.documents.firstOrNull()?.toObject(UserConsumer::class.java)
-                if (consumer != null) {
-                    requestWithNames.consumerName = "${consumer.firstName} ${consumer.lastName}"
-                    // Notify UI of changes
-                    _requests.value = _requests.value.toList()
-                } else {
-                    requestWithNames.consumerName = "Unknown Consumer"
-                    _requests.value = _requests.value.toList()
-                }
+                val name = consumer?.let { "${it.firstName} ${it.lastName}" } ?: "Unknown Consumer"
+                updateRequestWithNames(requestWithNames) { it.consumerName = name }
             }
             .addOnFailureListener {
-                requestWithNames.consumerName = "Error Loading"
-                _requests.value = _requests.value.toList()
+                updateRequestWithNames(requestWithNames) { it.consumerName = "Error Loading" }
             }
     }
 
-    private fun loadCommodityName(requestWithNames: RequestWithNames) {
+    fun loadCommodityName(requestWithNames: RequestWithNames) {
         val commodityId = requestWithNames.request.commodityId
         if (commodityId.isBlank()) {
-            requestWithNames.commodityName = "Unknown"
+            updateRequestWithNames(requestWithNames) { it.commodityName = "Unknown" }
             return
         }
 
@@ -118,20 +104,15 @@ class SupplierRequestsViewModel : ViewModel() {
             .get()
             .addOnSuccessListener { document ->
                 val commodity = document.toObject(Commodity::class.java)
-                if (commodity != null) {
-                    requestWithNames.commodityName = commodity.name
-                    // Notify UI of changes
-                    _requests.value = _requests.value.toList()
-                } else {
-                    requestWithNames.commodityName = "Unknown Commodity"
-                    _requests.value = _requests.value.toList()
-                }
+                val name = commodity?.name ?: "Unknown Commodity"
+                updateRequestWithNames(requestWithNames) { it.commodityName = name }
             }
             .addOnFailureListener {
-                requestWithNames.commodityName = "Error Loading"
-                _requests.value = _requests.value.toList()
+                updateRequestWithNames(requestWithNames) { it.commodityName = "Error Loading" }
             }
     }
+
+
 
     // For testing: add a test request to verify writing works
     fun addTestRequest(supplierId: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
@@ -229,5 +210,12 @@ class SupplierRequestsViewModel : ViewModel() {
                 }
             }
             .addOnFailureListener { onFailure(it) }
+    }
+    private fun updateRequestWithNames(
+        requestWithNames: RequestWithNames,
+        update: (RequestWithNames) -> Unit
+    ) {
+        update(requestWithNames)
+        _requests.value = _requests.value.toList() // Trigger UI update
     }
 }

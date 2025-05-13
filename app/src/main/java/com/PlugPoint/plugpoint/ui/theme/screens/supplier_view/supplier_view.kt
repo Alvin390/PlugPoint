@@ -28,6 +28,7 @@ import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierTopBar
 import androidx.core.net.toUri
 import coil.compose.rememberAsyncImagePainter
+import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerTopBar
 
@@ -36,7 +37,8 @@ fun SupplierView(
     navController: NavController,
     userId: String,
     searcherRole: String,
-    viewModel: UserSearchViewModel = viewModel()
+    viewModel: UserSearchViewModel = viewModel(),
+    authViewModel: AuthViewModel // Pass as parameter, unused for now
 ) {
     val supplier by viewModel.selectedSupplier.collectAsState()
 
@@ -137,4 +139,3 @@ fun FeatureCard(title: String, iconRes: Int, onClick: () -> Unit) {
         }
     }
 }
-

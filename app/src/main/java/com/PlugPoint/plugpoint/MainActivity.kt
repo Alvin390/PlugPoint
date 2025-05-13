@@ -1,6 +1,6 @@
 package com.PlugPoint.plugpoint
 
-import AppNavHost
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +26,7 @@ import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import androidx.compose.runtime.getValue
+import com.PlugPoint.plugpoint.navigation.AppNavHost
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

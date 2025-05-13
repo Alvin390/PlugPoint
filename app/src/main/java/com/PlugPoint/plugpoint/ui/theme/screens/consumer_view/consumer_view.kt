@@ -28,6 +28,7 @@ import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNa
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerTopBar
 import androidx.core.net.toUri
 import coil.compose.rememberAsyncImagePainter
+import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierTopBar
 
@@ -36,7 +37,8 @@ fun ConsumerView(
     navController: NavController,
     userId: String,
     searcherRole: String,
-    viewModel: UserSearchViewModel = viewModel()
+    viewModel: UserSearchViewModel = viewModel(),
+    authViewModel: AuthViewModel // Pass as parameter, unused for now
 ) {
     val consumer by viewModel.selectedConsumer.collectAsState()
 

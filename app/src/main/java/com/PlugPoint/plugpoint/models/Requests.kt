@@ -7,6 +7,6 @@ data class Requests(
     var quantity: Int = 0,
     var totalCost: Double = 0.0,
     var paymentMethod: String = "",
+    var currency: String = "USD", // Added currency field
     var timestamp: Long = System.currentTimeMillis()
 )
-

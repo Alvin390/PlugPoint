@@ -1,85 +1,133 @@
 package com.PlugPoint.plugpoint.data
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.PlugPoint.plugpoint.models.ChatMessage
-import com.PlugPoint.plugpoint.models.ChatUser
-import com.google.firebase.auth.FirebaseAuth
+import com.PlugPoint.plugpoint.models.Conversation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlin.collections.sortedBy
 
-class ChatViewModel : ViewModel() {
+class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
-    private val _chatUsers = MutableStateFlow<List<ChatUser>>(emptyList())
-    val chatUsers: StateFlow<List<ChatUser>> = _chatUsers
-    internal fun getCurrentUserId(): String? {
-        return FirebaseAuth.getInstance().currentUser?.uid
+    private val _conversations = MutableStateFlow<List<Conversation>>(emptyList())
+    val conversations: StateFlow<List<Conversation>> = _conversations
+    private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    val messages: StateFlow<List<ChatMessage>> = _messages
+
+    init {
+        listenForConversations()
     }
 
-    fun getMessages(userId: String): StateFlow<List<ChatMessage>> {
-        val messagesFlow = MutableStateFlow<List<ChatMessage>>(emptyList())
-        val currentUserId = getCurrentUserId()
-        if (currentUserId == null) {
-            println("Error: User not logged in")
-            return messagesFlow
-        }
-        db.collection("messages")
-            .whereIn("receiverId", listOf(userId, currentUserId))
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    println("Error fetching messages: ${error.message}")
+    private fun listenForConversations() {
+        val userId = authViewModel.getLoggedInUserId() ?: return
+        db.collection("conversations")
+            .whereArrayContains("participants", userId)
+            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null || snapshot == null) {
+                    _conversations.value = emptyList()
                     return@addSnapshotListener
                 }
-                messagesFlow.value = snapshot?.toObjects(ChatMessage::class.java) ?: emptyList()
+                viewModelScope.launch {
+                    val conversations = snapshot.documents.mapNotNull { doc ->
+                        val participants = doc.get("participants") as? List<String> ?: return@mapNotNull null
+                        val otherUserId = participants.find { it != userId } ?: return@mapNotNull null
+                        val lastMessage = doc.getString("lastMessage") ?: ""
+                        val lastMessageTime = doc.getLong("lastMessageTime") ?: 0L
+                        val lastMessageSenderId = doc.getString("lastMessageSenderId") ?: ""
+
+                        val userDoc = db.collection("users").document(otherUserId).get().await()
+                        val firstName = userDoc.getString("firstName") ?: ""
+                        val lastName = userDoc.getString("lastName") ?: ""
+                        val otherUserName = "$firstName $lastName"
+
+                        Conversation(
+                            id = doc.id,
+                            otherUserId = otherUserId,
+                            otherUserName = otherUserName,
+                            lastMessage = lastMessage,
+                            lastMessageTime = lastMessageTime,
+                            lastMessageSenderId = lastMessageSenderId
+                        )
+                    }
+                    _conversations.value = conversations // Firestore handles sorting
+                }
             }
-        return messagesFlow
+    }
+
+    fun listenForMessages(conversationId: String) {
+        db.collection("conversations")
+            .document(conversationId)
+            .collection("messages")
+            .orderBy("timestamp", Query.Direction.ASCENDING)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null || snapshot == null) {
+                    _messages.value = emptyList()
+                    return@addSnapshotListener
+                }
+                val messages = snapshot.documents.mapNotNull { doc ->
+                    ChatMessage(
+                        id = doc.id,
+                        senderId = doc.getString("senderId") ?: "",
+                        receiverId = doc.getString("receiverId") ?: "",
+                        text = doc.getString("text") ?: "",
+                        timestamp = doc.getLong("timestamp") ?: 0L
+                    )
+                }
+                _messages.value = messages.sortedBy { it.timestamp }
+            }
     }
 
     fun sendMessage(receiverId: String, text: String) {
-        val currentUserId = getCurrentUserId()
-        if (currentUserId == null) {
-            println("Error: User not logged in")
-            return
-        }
-        val message = ChatMessage(
-            senderId = currentUserId,
-            receiverId = receiverId,
-            text = text,
-            timestamp = System.currentTimeMillis()
-        )
-        db.collection("messages").add(message)
-    }
+        val senderId = authViewModel.getLoggedInUserId() ?: return
+        viewModelScope.launch {
+            try {
+                val participants = listOf(senderId, receiverId).sorted()
+                val conversationQuery = db.collection("conversations")
+                    .whereEqualTo("participants", participants)
+                    .get()
+                    .await()
 
-    private val _searchResults = MutableStateFlow<List<ChatUser>>(emptyList())
-    val searchResults: StateFlow<List<ChatUser>> = _searchResults
-    val isLoading = MutableStateFlow(false)
-    val errorMessage = MutableStateFlow<String?>(null)
-
-
-    fun searchUsersByName(query: String) {
-        if (query.isBlank()) {
-            _searchResults.value = emptyList()
-            return
-        }
-
-        val lowercaseQuery = query.lowercase()
-        db.collection("users")
-            .whereGreaterThanOrEqualTo("name", lowercaseQuery)
-            .whereLessThanOrEqualTo("name", lowercaseQuery + "\uf8ff")
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    println("Error searching users: ${error.message}")
-                    _searchResults.value = emptyList()
-                    return@addSnapshotListener
+                val conversationId = if (conversationQuery.isEmpty) {
+                    val newConversation = hashMapOf(
+                        "participants" to participants,
+                        "lastMessage" to text,
+                        "lastMessageTime" to System.currentTimeMillis(),
+                        "lastMessageSenderId" to senderId
+                    )
+                    val docRef = db.collection("conversations").add(newConversation).await()
+                    docRef.id
+                } else {
+                    val doc = conversationQuery.documents.first()
+                    doc.reference.update(
+                        mapOf(
+                            "lastMessage" to text,
+                            "lastMessageTime" to System.currentTimeMillis(),
+                            "lastMessageSenderId" to senderId
+                        )
+                    ).await()
+                    doc.id
                 }
-                _searchResults.value = snapshot?.toObjects(ChatUser::class.java) ?: emptyList()
-            }
-    }
 
-    init {
-        db.collection("users").addSnapshotListener { snapshot, _ ->
-            _chatUsers.value = snapshot?.toObjects(ChatUser::class.java) ?: emptyList()
+                val message = hashMapOf(
+                    "senderId" to senderId,
+                    "receiverId" to receiverId,
+                    "text" to text,
+                    "timestamp" to System.currentTimeMillis()
+                )
+                db.collection("conversations")
+                    .document(conversationId)
+                    .collection("messages")
+                    .add(message)
+                    .await()
+            } catch (e: Exception) {
+                // Handle error
+            }
         }
     }
 }

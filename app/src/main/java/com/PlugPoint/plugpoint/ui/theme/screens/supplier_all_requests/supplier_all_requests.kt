@@ -254,7 +254,6 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
 
 @Composable
 fun RequestItem(requestWithNames: RequestWithNames, onClick: () -> Unit) {
-    val currencyFormat = NumberFormat.getCurrencyInstance()
     val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
 
     Card(
@@ -265,7 +264,6 @@ fun RequestItem(requestWithNames: RequestWithNames, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Show consumer name if available, otherwise show "Loading..."
             Text(
                 text = if (requestWithNames.consumerName.isNotBlank())
                     "Consumer: ${requestWithNames.consumerName}"
@@ -275,7 +273,6 @@ fun RequestItem(requestWithNames: RequestWithNames, onClick: () -> Unit) {
                 fontSize = 16.sp
             )
 
-            // Show commodity name if available, otherwise show "Loading..."
             Text(
                 text = if (requestWithNames.commodityName.isNotBlank())
                     "Commodity: ${requestWithNames.commodityName}"
@@ -285,7 +282,10 @@ fun RequestItem(requestWithNames: RequestWithNames, onClick: () -> Unit) {
             )
 
             Text("Quantity: ${requestWithNames.request.quantity}", fontSize = 14.sp)
-            Text("Cost: ${currencyFormat.format(requestWithNames.request.totalCost)}", fontSize = 14.sp)
+            Text(
+                "Cost: ${requestWithNames.request.currency} ${requestWithNames.request.totalCost}",
+                fontSize = 14.sp
+            )
             Text("Payment: ${requestWithNames.request.paymentMethod}", fontSize = 14.sp)
             Text(
                 "Date: ${dateFormat.format(Date(requestWithNames.request.timestamp))}",
@@ -304,7 +304,6 @@ fun RequestDialog(
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
-    val currencyFormat = NumberFormat.getCurrencyInstance()
     val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
 
     AlertDialog(
@@ -312,7 +311,6 @@ fun RequestDialog(
         title = { Text("Request Details", color = Color(0xFFFFA500), fontWeight = FontWeight.Bold) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                // Show consumer name if available, otherwise show "Loading..."
                 Text(
                     text = if (requestWithNames.consumerName.isNotBlank())
                         "Consumer: ${requestWithNames.consumerName}"
@@ -321,7 +319,6 @@ fun RequestDialog(
                     fontSize = 16.sp
                 )
 
-                // Show commodity name if available, otherwise show "Loading..."
                 Text(
                     text = if (requestWithNames.commodityName.isNotBlank())
                         "Commodity: ${requestWithNames.commodityName}"
@@ -331,7 +328,7 @@ fun RequestDialog(
                 )
 
                 Text("Quantity: ${requestWithNames.request.quantity}", fontSize = 16.sp)
-                Text("Cost: ${currencyFormat.format(requestWithNames.request.totalCost)}", fontSize = 16.sp)
+                Text("Cost: ${requestWithNames.request.currency} ${requestWithNames.request.totalCost}", fontSize = 16.sp)
                 Text("Payment: ${requestWithNames.request.paymentMethod}", fontSize = 16.sp)
                 Text(
                     "Date: ${dateFormat.format(Date(requestWithNames.request.timestamp))}",

@@ -1,8 +1,6 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer
 
 
-
-import UserRow
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -165,4 +163,3 @@ fun UserRow(user: SearchSupplierAuthViewModel.User, navController: NavController
 //private fun search_consumer_preview() {
 //    SearchConsumerScreen(rememberNavController(), SearchSupplierAuthViewModel())
 //}
-

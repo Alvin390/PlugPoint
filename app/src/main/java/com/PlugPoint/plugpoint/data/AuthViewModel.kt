@@ -1,25 +1,27 @@
 package com.PlugPoint.plugpoint.data
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.SharedPreferences
+import android.net.Uri
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import android.net.Uri
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.first
-import android.content.Context
-import android.content.SharedPreferences
-import androidx.core.content.edit
+import kotlinx.coroutines.launch
 
-class AuthViewModel(private val imgurViewModel: ImgurViewModel,
-                    @SuppressLint("StaticFieldLeak") private val context: Context) : ViewModel() {
-    private val firestore = FirebaseFirestore.getInstance()
+class AuthViewModel(
+    private val imgurViewModel: ImgurViewModel,
+    @SuppressLint("StaticFieldLeak") private val context: Context
+) : ViewModel(){
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
     private val _supplierDetails = MutableStateFlow<UserSupplier?>(null)
     val supplierDetails: StateFlow<UserSupplier?> = _supplierDetails
@@ -30,53 +32,48 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
     private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
     val registrationState: StateFlow<RegistrationState> = _registrationState
 
-
-        private val sharedPreferences: SharedPreferences =
-            context.getSharedPreferences("PlugPointPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences: SharedPreferences =
+        context.getSharedPreferences("PlugPointPrefs", Context.MODE_PRIVATE)
 
     fun saveLoginState(userId: String, userType: String) {
         sharedPreferences.edit {
             putBoolean("isLoggedIn", true)
-                .putString("userId", userId)
-                .putString("userType", userType) // Ensure userType is saved
+            putString("userId", userId)
+            putString("userType", userType)
         }
     }
 
-        @SuppressLint("UseKtx")
-        fun clearLoginState() {
-            sharedPreferences.edit {
-                remove("isLoggedIn")
-                    .remove("userId")
-            }
+    fun clearLoginState() {
+        sharedPreferences.edit {
+            remove("isLoggedIn")
+            remove("userId")
+            remove("userType")
         }
+    }
 
-        fun isUserLoggedIn(): Boolean {
-            return sharedPreferences.getBoolean("isLoggedIn", false)
-        }
+    fun isUserLoggedIn(): Boolean {
+        return sharedPreferences.getBoolean("isLoggedIn", false)
+    }
 
-        fun getLoggedInUserId(): String? {
-            return sharedPreferences.getString("userId", null)
-        }
-
+    fun getLoggedInUserId(): String? {
+        return sharedPreferences.getString("userId", null)
+    }
 
     fun logoutUser(onNavigateToLogin: () -> Unit) {
         viewModelScope.launch {
-            // Clear any session-related data if needed
             _supplierDetails.value = null
             _consumerDetails.value = null
-
-            // Navigate to the login screen
+            clearLoginState()
             onNavigateToLogin()
         }
     }
 
-
     fun registerUser(
-        userType: String, // "supplier" or "consumer"
-        formData: Map<String, String>, // Key-value pairs of form data
-        imageUri: Uri?, // Image URI
-        onNavigateToProfile: (String) -> Unit,// Callback for navigation
-        context: android.content.Context
+        userType: String,
+        formData: Map<String, String>,
+        imageUri: Uri?,
+        onNavigateToProfile: (String) -> Unit,
+        context: Context
     ) {
         viewModelScope.launch {
             val validationError = validateFormData(formData)
@@ -85,20 +82,23 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
                 return@launch
             }
 
+            val updatedFormData = formData.toMutableMap()
             if (imageUri != null) {
                 imgurViewModel.uploadImage(imageUri, context, authorization = "511479d0432ec58")
                 val uploadState = imgurViewModel.uploadState.first()
-                if (uploadState is ImgurUploadState.Success) {
-                    val updatedFormData = formData.toMutableMap()
-                    updatedFormData["imageUrl"] = uploadState.imageUrl
-
-                    saveUserData(userType, updatedFormData, onNavigateToProfile)
-                } else if (uploadState is ImgurUploadState.Error) {
-                    _registrationState.value = RegistrationState.Failure(uploadState.message)
+                when (uploadState) {
+                    is ImgurUploadState.Success -> {
+                        updatedFormData["imageUrl"] = uploadState.imageUrl
+                    }
+                    is ImgurUploadState.Error -> {
+                        _registrationState.value = RegistrationState.Failure(uploadState.message)
+                        return@launch
+                    }
+                    else -> {}
                 }
-            } else {
-                saveUserData(userType, formData, onNavigateToProfile)
             }
+
+            saveUserData(userType, updatedFormData, onNavigateToProfile)
         }
     }
 
@@ -111,24 +111,28 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
 
         firestore.collection(collection).add(formData)
             .addOnSuccessListener { documentReference ->
+                val userId = documentReference.id
+                saveLoginState(userId, userType)
                 _registrationState.value = RegistrationState.Success(userType)
                 val profileRoute = if (userType == "supplier") {
-                    "$ROUTE_PROFILE_SUPPLIER/${documentReference.id}"
+                    "$ROUTE_PROFILE_SUPPLIER/$userId"
                 } else {
-                    "$ROUTE_PROFILE_CONSUMER/${documentReference.id}"
+                    "$ROUTE_PROFILE_CONSUMER/$userId"
                 }
                 onNavigateToProfile(profileRoute)
             }
             .addOnFailureListener { exception ->
-                _registrationState.value = RegistrationState.Failure(exception.message ?: "An unknown error occurred.")
+                _registrationState.value = RegistrationState.Failure(
+                    exception.message ?: "An unknown error occurred."
+                )
             }
     }
 
     fun loginUser(
         email: String,
         password: String,
-        onNavigateToProfile: (String) -> Unit, // Callback for navigation
-        onLoginError: (String) -> Unit // Callback for error handling
+        onNavigateToProfile: (String) -> Unit,
+        onLoginError: (String) -> Unit
     ) {
         viewModelScope.launch {
             if (email.isEmpty() || password.isEmpty()) {
@@ -181,21 +185,22 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
                 if (document.exists()) {
                     if (userType == "supplier") {
                         val supplier = document.toObject(UserSupplier::class.java)?.copy(
+                            id = userId,
                             imageUrl = document.getString("imageUrl") ?: ""
                         )
                         _supplierDetails.value = supplier
                     } else {
                         val consumer = document.toObject(UserConsumer::class.java)?.copy(
+                            id = userId,
                             imageUrl = document.getString("imageUrl") ?: ""
                         )
                         _consumerDetails.value = consumer
                     }
                 }
             }
-            .addOnFailureListener {
-                println("Error fetching profile details: ${it.message}")
+            .addOnFailureListener { e ->
+                println("Error fetching profile details: ${e.message}")
             }
-
     }
 
     private fun validateFormData(formData: Map<String, String>): String? {
@@ -218,24 +223,25 @@ class AuthViewModel(private val imgurViewModel: ImgurViewModel,
         viewModelScope.launch {
             val collection = if (userType == "supplier") "suppliers" else "consumers"
 
+            val updatedDataWithImage = updatedData.toMutableMap()
             if (imageUri != null) {
                 imgurViewModel.uploadImage(imageUri, context, authorization = "511479d0432ec58")
                 val uploadState = imgurViewModel.uploadState.first()
-                if (uploadState is ImgurUploadState.Success) {
-                    val updatedDataWithImage = updatedData.toMutableMap()
-                    updatedDataWithImage["imageUrl"] = uploadState.imageUrl
-
-                    firestore.collection(collection).document(userId).update(updatedDataWithImage as Map<String, Any>)
-                        .addOnSuccessListener { onUpdateSuccess() }
-                        .addOnFailureListener { e -> onUpdateFailure(e.message ?: "Update failed.") }
-                } else if (uploadState is ImgurUploadState.Error) {
-                    onUpdateFailure(uploadState.message)
+                when (uploadState) {
+                    is ImgurUploadState.Success -> {
+                        updatedDataWithImage["imageUrl"] = uploadState.imageUrl
+                    }
+                    is ImgurUploadState.Error -> {
+                        onUpdateFailure(uploadState.message)
+                        return@launch
+                    }
+                    else -> {}
                 }
-            } else {
-                firestore.collection(collection).document(userId).update(updatedData)
-                    .addOnSuccessListener { onUpdateSuccess() }
-                    .addOnFailureListener { e -> onUpdateFailure(e.message ?: "Update failed.") }
             }
+
+            firestore.collection(collection).document(userId).update(updatedDataWithImage as Map<String, Any>)
+                .addOnSuccessListener { onUpdateSuccess() }
+                .addOnFailureListener { e -> onUpdateFailure(e.message ?: "Update failed.") }
         }
     }
 
