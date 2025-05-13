@@ -149,6 +149,7 @@ class AuthViewModel(
                     if (!snapshot.isEmpty) {
                         val userId = snapshot.documents.first().id
                         saveLoginState(userId, "supplier")
+                        fetchProfileDetails(userId, "supplier") // Fetch profile after login
                         onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$userId")
                         return@addOnSuccessListener
                     }
@@ -162,6 +163,7 @@ class AuthViewModel(
                             if (!consumerSnapshot.isEmpty) {
                                 val consumerId = consumerSnapshot.documents.first().id
                                 saveLoginState(consumerId, "consumer")
+                                fetchProfileDetails(consumerId, "consumer") // Fetch profile after login
                                 onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$consumerId")
                             } else {
                                 onLoginError("Invalid email or password.")

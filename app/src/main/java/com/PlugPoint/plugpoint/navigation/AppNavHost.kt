@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint.navigation
 
+import SearchScreenSupplier
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -14,7 +15,7 @@ import com.PlugPoint.plugpoint.data.ChatViewModel
 import com.PlugPoint.plugpoint.data.ChatViewModelFactory
 import com.PlugPoint.plugpoint.data.DarkModeViewModel
 import com.PlugPoint.plugpoint.data.ImgurViewModel
-import com.PlugPoint.plugpoint.data.UserSearchViewModel // Updated import
+import com.PlugPoint.plugpoint.data.SearchSupplierAuthViewModel
 import com.PlugPoint.plugpoint.networks.ImgurAPI
 import com.PlugPoint.plugpoint.ui.theme.screens.chat_screen.ChatScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.chat_screen.ChatScreen2
@@ -28,8 +29,7 @@ import com.PlugPoint.plugpoint.ui.theme.screens.notifications_screen.Notificatio
 import com.PlugPoint.plugpoint.ui.theme.screens.registration_consumer.RegistrationConsumerScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.registration_supplier.RegistrationSupplierScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.role_screen.RoleSelectionScreen
-import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchScreenConsumer
-import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_supplier.SearchScreenSupplier
+import com.PlugPoint.plugpoint.ui.theme.screens.search_screen_consumer.SearchConsumerScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.settings_screen.SettingsScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.splashscreen.SplashScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.supplier_all_requests.SupplierAllRequestsScreen
@@ -65,15 +65,15 @@ fun AppNavHost(
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             SearchScreenSupplier(
                 navController,
-                viewModel = viewModel<UserSearchViewModel>(), // Fixed to UserSearchViewModel
+                viewModel = SearchSupplierAuthViewModel(),
                 userId = userId
             )
         }
         composable("$ROUTE_SEARCH_CONSUMER/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            SearchScreenConsumer(
+            SearchConsumerScreen(
                 navController,
-                viewModel = viewModel<UserSearchViewModel>(), // Fixed to UserSearchViewModel
+                viewModel = SearchSupplierAuthViewModel(),
                 userId = userId
             )
         }
@@ -105,7 +105,14 @@ fun AppNavHost(
                 imgurViewModel = imgurViewModel
             )
         }
-        composable("$ROUTE_CONSUMER_VIEW/{userId}/{searcherRole}") { backStackEntry ->
+// Add this inside NavHost in AppNavHost.kt
+        composable(
+            route = "consumer_view/{userId}?searcherRole={searcherRole}",
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType },
+                navArgument("searcherRole") { type = NavType.StringType; defaultValue = "consumer" }
+            )
+        ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val searcherRole = backStackEntry.arguments?.getString("searcherRole") ?: "consumer"
             ConsumerView(

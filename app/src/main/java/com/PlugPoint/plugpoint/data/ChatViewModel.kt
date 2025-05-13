@@ -36,7 +36,9 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
                 viewModelScope.launch {
                     val conversations = snapshot.documents.mapNotNull { doc ->
                         val participants = doc.get("participants") as? List<String> ?: return@mapNotNull null
-                        val otherUserId = participants.find { it != userId } ?: return@mapNotNull null
+                        val otherUserId = participants.find { it != userId }
+                        if (otherUserId.isNullOrBlank()) return@mapNotNull null // Prevent crash
+
                         val lastMessage = doc.getString("lastMessage") ?: ""
                         val lastMessageTime = doc.getLong("lastMessageTime") ?: 0L
                         val lastMessageSenderId = doc.getString("lastMessageSenderId") ?: ""

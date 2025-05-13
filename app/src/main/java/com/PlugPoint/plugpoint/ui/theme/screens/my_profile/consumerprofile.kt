@@ -64,13 +64,15 @@ import kotlin.text.ifEmpty
 
 
 @Composable
-fun ConsumerProfileScreen(navController: NavController,
-                          authViewModel: AuthViewModel= viewModel(),
-                          userId: String) {
+fun ConsumerProfileScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = viewModel(),
+    userId: String
+) {
     authViewModel.fetchProfileDetails(userId, "consumer")
     val userConsumer by authViewModel.consumerDetails.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) } // Controlled by card click
 
     // Handle back press
     BackHandler {
@@ -91,7 +93,7 @@ fun ConsumerProfileScreen(navController: NavController,
                             }
                         }
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = red) // Set "Yes" button color
+                    colors = ButtonDefaults.textButtonColors(contentColor = red)
                 ) {
                     Text("Yes")
                 }
@@ -99,7 +101,7 @@ fun ConsumerProfileScreen(navController: NavController,
             dismissButton = {
                 TextButton(
                     onClick = { showLogoutDialog = false },
-                    colors = ButtonDefaults.textButtonColors(contentColor = gray) // Set "No" button color
+                    colors = ButtonDefaults.textButtonColors(contentColor = gray)
                 ) {
                     Text("No")
                 }
@@ -110,9 +112,10 @@ fun ConsumerProfileScreen(navController: NavController,
     LaunchedEffect(userId) {
         authViewModel.fetchProfileDetails(userId, "consumer")
     }
+
     Scaffold(
         topBar = { ConsumerTopBar() },
-        bottomBar = { ConsumerBottomNavBar(navController,userId) }
+        bottomBar = { ConsumerBottomNavBar(navController, userId) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -140,19 +143,25 @@ fun ConsumerProfileScreen(navController: NavController,
             ) {
                 items(
                     listOf(
-                        Triple("Requests Made", R.drawable.applicationsmadeconsumer, ROUTE_COMMODITY_LIST),
-                        Triple("Accepted Requests", R.drawable.acceptedapplications, ROUTE_NOTIFICATION),
-                        Triple("Saved Suppliers", R.drawable.savedsuppliersconsumer, ROUTE_SEARCH_CONSUMER),
+                        Triple("Requests Made", R.drawable.applicationsmadeconsumer, null),
+                        Triple("Accepted Requests", R.drawable.acceptedapplications, null),
+                        Triple("Saved Suppliers", R.drawable.savedsuppliersconsumer, null),
                         Triple("Edit Profile", R.drawable.editprofileconsumer, ROUTE_PROFILE_CONSUMER),
                         Triple("Settings", R.drawable.settingsconsumer, ROUTE_SETTINGS),
                         Triple("Logout", R.drawable.logoutsupply, ROUTE_LOGIN)
                     )
                 ) { (title, imageRes, route) ->
-                    FeatureCard(title, imageRes, navController, route)
-
-                    if (title == "Edit Profile") {
-                        showEditDialog = true
-                    }
+                    FeatureCard(
+                        title = title,
+                        imageRes = imageRes,
+                        navController = navController,
+                        route = route,
+                        onEditProfileClick = {
+                            if (title == "Edit Profile" && userConsumer != null) {
+                                showEditDialog = true
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -167,7 +176,7 @@ fun ConsumerProfileScreen(navController: NavController,
                     userId = userId,
                     userType = "consumer",
                     updatedData = updatedData,
-                    imageUri = imageUri as Uri?,
+                    imageUri = imageUri,
                     onUpdateSuccess = { showEditDialog = false },
                     onUpdateFailure = { error -> println("Error: $error") }
                 )
@@ -318,11 +327,23 @@ fun ConsumerBottomNavBar(navController: NavController, userId: String) {
 }
 
 @Composable
-fun FeatureCard(title: String, @DrawableRes imageRes: Int, navController: NavController, route: String) {
+fun FeatureCard(
+    title: String,
+    @DrawableRes imageRes: Int,
+    navController: NavController,
+    route: String?, // Make this nullable
+    onEditProfileClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .size(150.dp)
-            .clickable { navController.navigate(route) },
+            .clickable {
+                if (title == "Edit Profile") {
+                    onEditProfileClick()
+                } else if (route != null) { // Only navigate if route is not null
+                    navController.navigate(route)
+                }
+            },
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(6.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFE6F2FF))

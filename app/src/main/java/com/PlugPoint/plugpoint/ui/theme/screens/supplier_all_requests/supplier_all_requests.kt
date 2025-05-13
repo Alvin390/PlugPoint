@@ -44,8 +44,11 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
     var callError by remember { mutableStateOf<String?>(null) }
     var addingTestRequest by remember { mutableStateOf(false) }
     var showFixDialog by remember { mutableStateOf(false) }
+    var showCleanDialog by remember { mutableStateOf(false) } // New dialog for cleanup
     var fixingEmptyIds by remember { mutableStateOf(false) }
+    var cleaningInvalidRequests by remember { mutableStateOf(false) } // New state for cleanup
     var fixResult by remember { mutableStateOf<String?>(null) }
+    var cleanResult by remember { mutableStateOf<String?>(null) } // New state for cleanup result
 
     LaunchedEffect(supplierId) {
         println("LaunchedEffect with supplierId: $supplierId")
@@ -56,6 +59,14 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
         topBar = { SupplierTopBar() },
         floatingActionButton = {
             Column {
+                // Clean Invalid Requests FAB
+                SmallFloatingActionButton(
+                    onClick = { showCleanDialog = true },
+                    modifier = Modifier.padding(bottom = 8.dp),
+                    containerColor = MaterialTheme.colorScheme.error
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = "Clean Invalid Requests")
+                }
                 // Fix empty supplier IDs FAB
                 SmallFloatingActionButton(
                     onClick = { showFixDialog = true },
@@ -64,7 +75,6 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
                 ) {
                     Icon(Icons.Default.Build, contentDescription = "Fix Empty IDs")
                 }
-
                 // Add Test Request FAB
                 FloatingActionButton(
                     onClick = {
@@ -72,12 +82,8 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
                             addingTestRequest = true
                             viewModel.addTestRequest(
                                 supplierId = supplierId,
-                                onSuccess = {
-                                    addingTestRequest = false
-                                },
-                                onFailure = {
-                                    addingTestRequest = false
-                                }
+                                onSuccess = { addingTestRequest = false },
+                                onFailure = { addingTestRequest = false }
                             )
                         }
                     }
@@ -138,14 +144,68 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
         }
     }
 
-    // Fix empty supplier IDs dialog
+    // Clean invalid requests dialog
+    if (showCleanDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!cleaningInvalidRequests) showCleanDialog = false },
+            title = { Text("Clean Invalid Requests") },
+            text = {
+                Text("Some requests have invalid consumer or commodity IDs. Would you like to delete these requests?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        cleaningInvalidRequests = true
+                        viewModel.cleanInvalidRequests { result ->
+                            cleaningInvalidRequests = false
+                            showCleanDialog = false
+                            cleanResult = result
+                        }
+                    },
+                    enabled = !cleaningInvalidRequests
+                ) {
+                    if (cleaningInvalidRequests) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                    } else {
+                        Text("Clean Now")
+                    }
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showCleanDialog = false },
+                    enabled = !cleaningInvalidRequests
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Clean result dialog
+    cleanResult?.let { result ->
+        AlertDialog(
+            onDismissRequest = { cleanResult = null },
+            title = { Text("Cleanup Result") },
+            text = { Text(result) },
+            confirmButton = {
+                Button(onClick = {
+                    cleanResult = null
+                    viewModel.fetchRequestsForSupplier(supplierId)
+                }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    // Existing dialogs for fixEmptySupplierIds and other logic remain unchanged
     if (showFixDialog) {
         AlertDialog(
             onDismissRequest = { if (!fixingEmptyIds) showFixDialog = false },
             title = { Text("Fix Database Issues") },
             text = {
-                Text("The logs showed that some requests have an empty supplier ID. " +
-                        "Would you like to update these requests with your current supplier ID?")
+                Text("The logs showed that some requests have an empty supplier ID. Would you like to update these requests with your current supplier ID?")
             },
             confirmButton = {
                 Button(
@@ -184,7 +244,6 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
         )
     }
 
-    // Fix result dialog
     fixResult?.let { result ->
         AlertDialog(
             onDismissRequest = { fixResult = null },
@@ -193,7 +252,6 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
             confirmButton = {
                 Button(onClick = {
                     fixResult = null
-                    // Refresh the requests after fixing IDs
                     viewModel.fetchRequestsForSupplier(supplierId)
                 }) {
                     Text("OK")
@@ -265,20 +323,24 @@ fun RequestItem(requestWithNames: RequestWithNames, onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = if (requestWithNames.consumerName.isNotBlank())
-                    "Consumer: ${requestWithNames.consumerName}"
-                else
-                    "Consumer: Loading...",
+                text = when {
+                    requestWithNames.consumerName == "Loading..." -> "Consumer: Loading..."
+                    requestWithNames.consumerName == "Error Loading" -> "Consumer: Failed to load"
+                    else -> "Consumer: ${requestWithNames.consumerName}"
+                },
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                color = if (requestWithNames.consumerName == "Error Loading") Color.Red else Color.Black
             )
 
             Text(
-                text = if (requestWithNames.commodityName.isNotBlank())
-                    "Commodity: ${requestWithNames.commodityName}"
-                else
-                    "Commodity: Loading...",
-                fontSize = 14.sp
+                text = when {
+                    requestWithNames.commodityName == "Loading..." -> "Commodity: Loading..."
+                    requestWithNames.commodityName == "Error Loading" -> "Commodity: Failed to load"
+                    else -> "Commodity: ${requestWithNames.commodityName}"
+                },
+                fontSize = 14.sp,
+                color = if (requestWithNames.commodityName == "Error Loading") Color.Red else Color.Black
             )
 
             Text("Quantity: ${requestWithNames.request.quantity}", fontSize = 14.sp)

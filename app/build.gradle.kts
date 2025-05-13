@@ -60,6 +60,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation(libs.firebase.storage)
     implementation(libs.firebase.database)
+    implementation (libs.kotlinx.coroutines.play.services)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
     implementation(libs.okhttp)

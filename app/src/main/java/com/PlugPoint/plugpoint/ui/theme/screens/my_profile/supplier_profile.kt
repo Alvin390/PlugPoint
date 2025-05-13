@@ -164,8 +164,8 @@ fun SupplierProfileScreen(navController: NavController,
                         onClick = {
                             when (title) {
                                 "Commodities" -> navController.navigate("$ROUTE_COMMODITY_LIST/$userId")
-                                "Accepted Requests" -> { /* Add navigation or logic here */ }
-                                "All Requests" -> navController.navigate("$ROUTE_SUPPLIER_ALL_REQUESTS/$userId")
+                                "Accepted Requests" -> { null }
+                                "All Requests" -> null
                                 "Edit Profile" -> {
                                     showEditDialog = true
                                 }
