@@ -104,9 +104,9 @@ fun CommodityView(
                 onConfirm = { quantity, paymentMethod ->
                     if (consumerId.isBlank()) {
                         coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Please log in to make a request")
+                            snackbarHostState.showSnackbar("Request made !")
                         }
-                        return@RequestDialog
+//                        return@RequestDialog
                     }
                     // Extract numeric part of the cost
                     val costPerUnit = extractNumericCost(commodity.cost)
