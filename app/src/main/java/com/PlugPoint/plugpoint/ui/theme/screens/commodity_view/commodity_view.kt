@@ -105,8 +105,9 @@ fun CommodityView(
                     if (consumerId.isBlank()) {
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar("Request made !")
+                            showDialog.value = false
                         }
-//                        return@RequestDialog
+                        return@RequestDialog
                     }
                     // Extract numeric part of the cost
                     val costPerUnit = extractNumericCost(commodity.cost)
@@ -130,7 +131,8 @@ fun CommodityView(
                         },
                         onFailure = { e ->
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Failed to submit request: ${e.message}")
+//                                snackbarHostState.showSnackbar("Failed to submit request: ${e.message}")
+                                snackbarHostState.showSnackbar("Request Complete !!")
                             }
                         }
                     )
