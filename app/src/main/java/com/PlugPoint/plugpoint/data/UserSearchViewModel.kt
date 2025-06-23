@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.google.firebase.firestore.FirebaseFirestore
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -22,7 +23,7 @@ class UserSearchViewModel : ViewModel() {
     fun fetchConsumerDetails(userId: String) {
         viewModelScope.launch {
             try {
-                val document = firestore.collection("consumers").document(userId).get().await()
+                val document = firestore.collection(FirestoreCollections.CONSUMERS).document(userId).get().await()
                 _selectedConsumer.value = document.toObject(UserConsumer::class.java)
             } catch (e: Exception) {
                 _selectedConsumer.value = null
@@ -33,7 +34,7 @@ class UserSearchViewModel : ViewModel() {
     fun fetchSupplierDetails(userId: String) {
         viewModelScope.launch {
             try {
-                val document = firestore.collection("suppliers").document(userId).get().await()
+                val document = firestore.collection(FirestoreCollections.SUPPLIERS).document(userId).get().await()
                 _selectedSupplier.value = document.toObject(UserSupplier::class.java)
             } catch (e: Exception) {
                 _selectedSupplier.value = null

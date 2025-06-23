@@ -1,7 +1,6 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.settings_screen
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack

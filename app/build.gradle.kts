@@ -1,11 +1,21 @@
 import com.android.tools.r8.internal.kt
 
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
 }
+
+// ---- Load secrets.properties ----
+val secretsPropsFile = rootProject.file("secrets.properties")
+val secrets = Properties()
+if (secretsPropsFile.exists()) {
+    secrets.load(secretsPropsFile.inputStream())
+}
+val IMGUR_CLIENT_ID: String = secrets.getProperty("IMGUR_CLIENT_ID") ?: ""
 
 android {
     namespace = "com.PlugPoint.plugpoint"
@@ -17,6 +27,9 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
+
+            // Expose secrets to BuildConfig
+            buildConfigField("String", "IMGUR_CLIENT_ID", "\"$IMGUR_CLIENT_ID\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,6 +52,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig= true
     }
 }
 
@@ -54,10 +68,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
-//    implementation(libs.coil.compose)
     implementation("io.coil-kt.coil3:coil-compose:3.1.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
-    implementation("io.coil-kt:coil-compose:2.4.0")
     implementation(libs.firebase.storage)
     implementation(libs.firebase.database)
     implementation (libs.kotlinx.coroutines.play.services)
@@ -71,8 +83,6 @@ dependencies {
     implementation(libs.androidx.room.runtime.android)
     testImplementation(libs.junit)
     implementation (libs.androidx.datastore.preferences)
-    implementation(libs.coil.compose.v250)
-//    implementation(libs.coil.kt.coil.compose)
     implementation(libs.androidx.navigation.compose)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

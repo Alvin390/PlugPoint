@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -13,11 +14,24 @@ import com.PlugPoint.plugpoint.data.ImgurViewModel
 import kotlinx.coroutines.flow.first
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 
 class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel() {
+    companion object { private const val PAGE_SIZE = 20 }
+
     private val firestore = FirebaseFirestore.getInstance()
-    private val _commodities = MutableStateFlow<List<Commodity>>(emptyList())
-    val commodities: StateFlow<List<Commodity>> get() = _commodities
+    sealed class UiState<out T> {
+        object Idle : UiState<Nothing>()
+        object Loading : UiState<Nothing>()
+        data class Success<T>(val data: T) : UiState<T>()
+        data class Error(val message: String) : UiState<Nothing>()
+    }
+
+    private val _commodities = MutableStateFlow<UiState<List<Commodity>>>(UiState.Idle)
+    val commodities: StateFlow<UiState<List<Commodity>>> get() = _commodities
+    private var lastVisibleSnapshot: com.google.firebase.firestore.DocumentSnapshot? = null
+    private var isLastPage = false
+    private var loadJob: Job? = null
 
     fun addCommodityToFirestore(
         commodity: Commodity,
@@ -29,35 +43,84 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel(
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Upload image to Imgur if an image URI is provided
-// Replace the existing image upload logic with:
-                commodity.imageUri = uploadImageIfNeeded(imageUri, context)
+                // Only update imageUri if a new image is picked
+                if (imageUri != null) {
+                    commodity.imageUri = uploadImageIfNeeded(imageUri, context)
+                }
+                // else, keep the existing commodity.imageUri (do not overwrite with null)
 
                 // Save commodity to Firestore
-                val userCommoditiesRef = firestore.collection("suppliers").document(userId).collection("commodities")
+                val userCommoditiesRef = firestore.collection(FirestoreCollections.SUPPLIERS).document(userId).collection(FirestoreCollections.COMMODITIES_SUB)
                 val commodityId = userCommoditiesRef.document().id
                 commodity.id = commodityId
                 userCommoditiesRef.document(commodityId).set(commodity).await()
 
-                refreshCommodities(userId) // Unified refresh logic
+                loadFirstPage(userId)
                 onSuccess()
             } catch (exception: Exception) {
                 onFailure(exception)
             }
-//            refreshCommodities(userId) // Unified refresh logic
         }
     }
 
-    fun fetchCommoditiesFromFirestore(userId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+    fun loadFirstPage(userId: String) {
+        loadJob?.cancel()
+        _commodities.value = UiState.Loading
+        lastVisibleSnapshot = null
+        isLastPage = false
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                val snapshot = firestore.collection("suppliers").document(userId).collection("commodities").get().await()
-                val commodities = snapshot.documents.mapNotNull { document ->
-                    document.toObject(Commodity::class.java)?.apply { id = document.id }
+                val baseQuery = firestore.collection(FirestoreCollections.SUPPLIERS)
+                    .document(userId)
+                    .collection(FirestoreCollections.COMMODITIES_SUB)
+                    .orderBy("name")
+                    .limit(PAGE_SIZE.toLong())
+                val snapshot = baseQuery.get().await()
+                val newItems = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Commodity::class.java)?.apply { id = doc.id }
                 }
-                _commodities.update { commodities }
-            } catch (exception: Exception) {
-                // Handle error if needed
+                lastVisibleSnapshot = snapshot.documents.lastOrNull()
+                if (snapshot.size() < PAGE_SIZE) {
+                    isLastPage = true
+                }
+                _commodities.value = UiState.Success(newItems)
+            } catch (e: Exception) {
+                _commodities.value = UiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
+     * Legacy wrapper to maintain compatibility with older UI code.
+     * Delegates to [loadFirstPage].
+     */
+    fun fetchCommoditiesFromFirestore(userId: String) {
+        loadFirstPage(userId)
+    }
+
+    fun loadNextPage(userId: String) {
+        if (isLastPage) return
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val baseQuery = firestore.collection(FirestoreCollections.SUPPLIERS)
+                    .document(userId)
+                    .collection(FirestoreCollections.COMMODITIES_SUB)
+                    .orderBy("name")
+                    .limit(PAGE_SIZE.toLong())
+                val query = lastVisibleSnapshot?.let { baseQuery.startAfter(it) } ?: baseQuery
+                val snapshot = query.get().await()
+
+                val newItems = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Commodity::class.java)?.apply { id = doc.id }
+                }
+                lastVisibleSnapshot = snapshot.documents.lastOrNull()
+                if (snapshot.size() < PAGE_SIZE) {
+                    isLastPage = true
+                }
+                val oldList = (commodities.value as? UiState.Success)?.data ?: emptyList()
+                _commodities.value = UiState.Success(oldList + newItems)
+            } catch (e: Exception) {
+                _commodities.value = UiState.Error(e.message ?: "Unknown error")
             }
         }
     }
@@ -68,18 +131,15 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel(
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val commodityRef = firestore.collection("suppliers").document(userId).collection("commodities").document(commodityId)
+        val commodityRef = firestore.collection(FirestoreCollections.SUPPLIERS).document(userId).collection(FirestoreCollections.COMMODITIES_SUB).document(commodityId)
         commodityRef.delete()
-
             .addOnSuccessListener {
-                fetchCommoditiesFromFirestore(userId) // Refresh the list after deletion
+                loadFirstPage(userId) // Refresh the list after deletion
                 onSuccess()
             }
             .addOnFailureListener { exception -> onFailure(exception) }
-        _commodities.update { currentList ->
-            currentList.filterNot { it.id == commodityId }
-        }
-        refreshCommodities(userId) // Unified refresh logic
+        val currentList = (_commodities.value as? UiState.Success)?.data ?: emptyList()
+        _commodities.value = UiState.Success(currentList.filter { it.id != commodityId })
     }
 
     fun updateCommodityInFirestore(
@@ -92,60 +152,38 @@ class CommodityViewModel(private val imgurViewModel: ImgurViewModel): ViewModel(
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                // Handle image upload if the image URI has changed
-                if (updatedCommodity.imageUri != null) {
-                    imgurViewModel.uploadImage(Uri.parse(updatedCommodity.imageUri), context, authorization = "511479d0432ec58")
-                    val uploadState = imgurViewModel.uploadState.first()
-                    when (uploadState) {
-                        is ImgurUploadState.Success -> {
-                            updatedCommodity.imageUri = uploadState.imageUrl
-                        }
-                        is ImgurUploadState.Error -> throw Exception(uploadState.message)
-                        else -> throw Exception("Unexpected Imgur upload state")
-                    }
+                // Only upload and update imageUri if a new image is picked
+                if (!updatedCommodity.imageUri.isNullOrBlank() && updatedCommodity.imageUri!!.startsWith("content://")) {
+                    updatedCommodity.imageUri = imgurViewModel.uploadImageAndGetUrl(
+                        Uri.parse(updatedCommodity.imageUri), context, authorization = ImgurViewModel.AUTHORIZATION)
                 }
+                // else, keep the existing imageUri (do not overwrite with null)
 
                 // Update commodity in Firestore
-                val commodityRef = firestore.collection("suppliers").document(userId).collection("commodities").document(commodityId)
+                val commodityRef = firestore.collection(FirestoreCollections.SUPPLIERS).document(userId).collection(FirestoreCollections.COMMODITIES_SUB).document(commodityId)
                 commodityRef.set(updatedCommodity).await()
 
-//                refreshCommodities(userId) // Unified refresh logic
+                loadFirstPage(userId)
                 onSuccess()
             } catch (exception: Exception) {
                 onFailure(exception)
             }
-//            refreshCommodities(userId) // Unified refresh logic
         }
     }
 
-    private fun refreshCommodities(userId: String) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val snapshot = firestore.collection("suppliers").document(userId).collection("commodities").get().await()
-                val commodities = snapshot.documents.mapNotNull { document ->
-                    document.toObject(Commodity::class.java)?.apply { id = document.id }
-                }
-                _commodities.update { commodities }
-            } catch (exception: Exception) {
-                // Handle error if needed
-            }
-        }
-    }
+    // Deprecated: Use loadFirstPage instead
+    private fun refreshCommodities(userId: String) {}
+
 
     fun updateCommodities(updatedList: List<Commodity>) {
-        _commodities.value = updatedList
+        _commodities.value = UiState.Success(updatedList)
     }
     private suspend fun uploadImageIfNeeded(
         imageUri: Uri?,
         context: android.content.Context
     ): String? {
         if (imageUri == null) return null
-        imgurViewModel.uploadImage(imageUri, context, authorization = "511479d0432ec58")
-        val uploadState = imgurViewModel.uploadState.first()
-        return when (uploadState) {
-            is ImgurUploadState.Success -> uploadState.imageUrl // Return the uploaded image URL
-            is ImgurUploadState.Error -> throw Exception(uploadState.message)
-            else -> null
-        }
+        val compressedFile = com.PlugPoint.plugpoint.utilis.ImageCompressUtils.compressUri(context, imageUri)
+        return imgurViewModel.uploadImageAndGetUrl(android.net.Uri.fromFile(compressedFile), context, authorization = ImgurViewModel.AUTHORIZATION)
     }
 }

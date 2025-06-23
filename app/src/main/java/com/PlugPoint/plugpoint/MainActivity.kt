@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -20,6 +21,7 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_PROFILE_SUPPLIER
 import com.PlugPoint.plugpoint.networks.ImgurAPI
 import com.PlugPoint.plugpoint.ui.theme.PlugPointTheme
+import com.PlugPoint.plugpoint.ui.components.UiStateOverlay
 import com.PlugPoint.plugpoint.utilis.AuthViewModelFactory
 import com.PlugPoint.plugpoint.utilis.DarkModeViewModelFactory
 import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
@@ -70,7 +72,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    UiStateOverlay()
                     AppNavHost(
+                        modifier = Modifier.padding(innerPadding),
                         navController = rememberNavController(),
                         imgurViewModel = imgurViewModel,
                         darkModeViewModel = darkModeViewModel,

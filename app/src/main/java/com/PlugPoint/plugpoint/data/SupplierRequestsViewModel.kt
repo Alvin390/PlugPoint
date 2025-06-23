@@ -6,6 +6,10 @@ import com.PlugPoint.plugpoint.models.Commodity
 import com.PlugPoint.plugpoint.models.Requests
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.DocumentSnapshot
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -31,11 +35,22 @@ class SupplierRequestsViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _hasMoreData = MutableStateFlow(true)
+    val hasMoreData: StateFlow<Boolean> = _hasMoreData
+    private val pageSize = 10
+    private var lastDocument: DocumentSnapshot? = null
+
+    // Firestore listener reference to prevent leaks
+    private var requestsListener: ListenerRegistration? = null
+
 
     fun fetchRequestsForSupplier(supplierId: String) {
         _isLoading.value = true
-        firestore.collection("requests")
+        requestsListener?.remove()
+        requestsListener = firestore.collection(FirestoreCollections.REQUESTS)
             .whereEqualTo("supplierId", supplierId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(pageSize.toLong())
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
                     println("fetchRequestsForSupplier: Error fetching requests: ${e.message}")
@@ -51,12 +66,46 @@ class SupplierRequestsViewModel : ViewModel() {
                     }
                     _requests.value = requests
                     _isLoading.value = false
+                    lastDocument = if (snapshot.documents.isNotEmpty()) snapshot.documents.last() else null
+                    _hasMoreData.value = snapshot.documents.size == pageSize
                     requests.forEach { requestWithNames ->
                         loadConsumerName(requestWithNames)
                         loadCommodityName(requestWithNames)
                     }
                 }
             }
+    }
+
+    fun loadMoreRequests(supplierId: String) {
+        if (!_hasMoreData.value || _isLoading.value) return
+        _isLoading.value = true
+        lastDocument?.let { lastDoc ->
+            firestore.collection(FirestoreCollections.REQUESTS)
+                .whereEqualTo("supplierId", supplierId)
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .startAfter(lastDoc)
+                .limit(pageSize.toLong())
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val newRequests = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Requests::class.java)?.let { request ->
+                            RequestWithNames(request = request, consumerName = "Loading...", commodityName = "Loading...")
+                        }
+                    }
+                    _requests.value = _requests.value + newRequests
+                    _isLoading.value = false
+                    lastDocument = if (snapshot.documents.isNotEmpty()) snapshot.documents.last() else null
+                    _hasMoreData.value = snapshot.documents.size == pageSize
+                    newRequests.forEach { requestWithNames ->
+                        loadConsumerName(requestWithNames)
+                        loadCommodityName(requestWithNames)
+                    }
+                }
+                .addOnFailureListener { e ->
+                    println("loadMoreRequests: Error loading more requests: ${e.message}")
+                    _isLoading.value = false
+                }
+        }
     }
 
     fun loadConsumerName(requestWithNames: RequestWithNames) {
@@ -67,7 +116,7 @@ class SupplierRequestsViewModel : ViewModel() {
             return
         }
 
-        firestore.collection("users_consumer")
+        firestore.collection(FirestoreCollections.CONSUMERS)
             .document(consumerId)
             .get()
             .addOnSuccessListener { document ->
@@ -95,7 +144,7 @@ class SupplierRequestsViewModel : ViewModel() {
             return
         }
 
-        firestore.collection("commodities")
+        firestore.collection(FirestoreCollections.COMMODITIES_TOP)
             .document(commodityId)
             .get()
             .addOnSuccessListener { document ->
@@ -121,7 +170,7 @@ class SupplierRequestsViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 // Use existing consumer if available
-                val consumerSnapshot = firestore.collection("users_consumer")
+                val consumerSnapshot = firestore.collection(FirestoreCollections.CONSUMERS)
                     .limit(1)
                     .get()
                     .await()
@@ -130,10 +179,10 @@ class SupplierRequestsViewModel : ViewModel() {
                         firstName = "Test",
                         lastName = "Consumer",
                         email = "test@consumer.com",
-                        id = firestore.collection("users_consumer").document().id,
+                        id = firestore.collection(FirestoreCollections.CONSUMERS).document().id,
                         phoneNumber = "1234567890"
                     )
-                    firestore.collection("users_consumer")
+                    firestore.collection(FirestoreCollections.CONSUMERS)
                         .document(testConsumer.id)
                         .set(testConsumer)
                         .await()
@@ -144,21 +193,21 @@ class SupplierRequestsViewModel : ViewModel() {
                 }
 
                 // Use existing commodity for the supplier if available
-                val commoditySnapshot = firestore.collection("commodities")
+                val commoditySnapshot = firestore.collection(FirestoreCollections.COMMODITIES_TOP)
                     .whereEqualTo("supplierId", supplierId)
                     .limit(1)
                     .get()
                     .await()
                 val commodityId = if (commoditySnapshot.isEmpty) {
                     val testCommodity = Commodity(
-                        id = firestore.collection("commodities").document().id,
+                        id = firestore.collection(FirestoreCollections.COMMODITIES_TOP).document().id,
                         name = "Test Commodity",
                         quantity = "100",
                         cost = "200",
                         currency = "USD",
                         supplierId = supplierId
                     )
-                    firestore.collection("commodities")
+                    firestore.collection(FirestoreCollections.COMMODITIES_TOP)
                         .document(testCommodity.id)
                         .set(testCommodity)
                         .await()
@@ -179,7 +228,7 @@ class SupplierRequestsViewModel : ViewModel() {
                     timestamp = System.currentTimeMillis()
                 )
 
-                firestore.collection("requests")
+                firestore.collection(FirestoreCollections.REQUESTS)
                     .add(testRequest)
                     .await()
                 println("addTestRequest: Test request added successfully with consumerId $consumerId, commodityId $commodityId")
@@ -192,7 +241,7 @@ class SupplierRequestsViewModel : ViewModel() {
     }
     // Special method to fix empty supplierId in the database
     fun fixEmptySupplierIds(newSupplierId: String, onComplete: (Int) -> Unit) {
-        firestore.collection("requests")
+        firestore.collection(FirestoreCollections.REQUESTS)
             .whereEqualTo("supplierId", "")
             .get()
             .addOnSuccessListener { snapshot ->
@@ -229,12 +278,39 @@ class SupplierRequestsViewModel : ViewModel() {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        firestore.collection("accepted_requests")
-            .add(requestWithNames.request)
-            .addOnSuccessListener {
-                deleteRequest(requestWithNames.request, onSuccess, onFailure)
+        viewModelScope.launch {
+            try {
+                // Build batch – create accepted request doc with denormalised names, delete originals
+                val batch = firestore.batch()
+                // Add accepted request with extra display fields
+                val acceptedRef = firestore.collection(FirestoreCollections.ACCEPTED_REQUESTS).document()
+                val r = requestWithNames.request
+                val data = hashMapOf<String, Any?>(
+                    "consumerId" to r.consumerId,
+                    "supplierId" to r.supplierId,
+                    "commodityId" to r.commodityId,
+                    "quantity" to r.quantity,
+                    "totalCost" to r.totalCost,
+                    "paymentMethod" to r.paymentMethod,
+                    "currency" to r.currency,
+                    "timestamp" to r.timestamp,
+                    "consumerName" to requestWithNames.consumerName,
+                    "commodityName" to requestWithNames.commodityName
+                )
+                batch.set(acceptedRef, data)
+
+                // Find original request docs
+                val originals = firestore.collection(FirestoreCollections.REQUESTS)
+                    .whereEqualTo("consumerId", requestWithNames.request.consumerId)
+                    .whereEqualTo("commodityId", requestWithNames.request.commodityId)
+                    .get().await()
+                originals.documents.forEach { batch.delete(it.reference) }
+                batch.commit().await()
+                onSuccess()
+            } catch (e: Exception) {
+                onFailure(e)
             }
-            .addOnFailureListener { onFailure(it) }
+        }
     }
 
     fun declineRequest(
@@ -242,15 +318,28 @@ class SupplierRequestsViewModel : ViewModel() {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        deleteRequest(requestWithNames.request, onSuccess, onFailure)
+        viewModelScope.launch {
+            try {
+                val originals = firestore.collection(FirestoreCollections.REQUESTS)
+                    .whereEqualTo("consumerId", requestWithNames.request.consumerId)
+                    .whereEqualTo("commodityId", requestWithNames.request.commodityId)
+                    .get().await()
+                val batch = firestore.batch()
+                originals.documents.forEach { batch.delete(it.reference) }
+                batch.commit().await()
+                onSuccess()
+            } catch (e: Exception) {
+                onFailure(e)
+            }
+        }
     }
 
-    private fun deleteRequest(
+    private fun deleteRequest( // deprecated, kept for binary compatibility but no longer used elsewhere
         request: Requests,
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        firestore.collection("requests")
+        firestore.collection(FirestoreCollections.REQUESTS)
             .whereEqualTo("consumerId", request.consumerId)
             .whereEqualTo("commodityId", request.commodityId)
             .get()
@@ -266,7 +355,7 @@ class SupplierRequestsViewModel : ViewModel() {
         onSuccess: (String) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        firestore.collection("users_consumer")
+        firestore.collection(FirestoreCollections.CONSUMERS)
             .whereEqualTo("id", consumerId)
             .get()
             .addOnSuccessListener { snapshot ->
@@ -290,7 +379,7 @@ class SupplierRequestsViewModel : ViewModel() {
         }
     }
     fun cleanInvalidRequests(onComplete: (String) -> Unit) {
-        firestore.collection("requests")
+        firestore.collection(FirestoreCollections.REQUESTS)
             .get()
             .addOnSuccessListener { snapshot ->
                 val batch = firestore.batch()
@@ -324,5 +413,10 @@ class SupplierRequestsViewModel : ViewModel() {
             .addOnFailureListener { e ->
                 onComplete("Failed to query requests: ${e.message}")
             }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        requestsListener?.remove()
     }
 }

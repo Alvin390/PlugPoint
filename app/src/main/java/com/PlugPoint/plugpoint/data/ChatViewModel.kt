@@ -1,9 +1,13 @@
 package com.PlugPoint.plugpoint.data
 
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.PlugPoint.plugpoint.models.ChatMessage
 import com.PlugPoint.plugpoint.models.Conversation
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +22,9 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
     val conversations: StateFlow<List<Conversation>> = _conversations
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages
+    // Firestore listener references to prevent leaks
+    private var conversationsListener: ListenerRegistration? = null
+    private var messagesListener: ListenerRegistration? = null
 
     init {
         listenForConversations()
@@ -25,7 +32,8 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
 
     private fun listenForConversations() {
         val userId = authViewModel.getLoggedInUserId() ?: return
-        db.collection("conversations")
+        conversationsListener?.remove()
+        conversationsListener = db.collection(FirestoreCollections.CONVERSATIONS)
             .whereArrayContains("participants", userId)
             .orderBy("lastMessageTime", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, e ->
@@ -43,10 +51,7 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
                         val lastMessageTime = doc.getLong("lastMessageTime") ?: 0L
                         val lastMessageSenderId = doc.getString("lastMessageSenderId") ?: ""
 
-                        val userDoc = db.collection("users").document(otherUserId).get().await()
-                        val firstName = userDoc.getString("firstName") ?: ""
-                        val lastName = userDoc.getString("lastName") ?: ""
-                        val otherUserName = "$firstName $lastName"
+                        val otherUserName = fetchUserName(otherUserId)
 
                         Conversation(
                             id = doc.id,
@@ -63,9 +68,10 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
     }
 
     fun listenForMessages(conversationId: String) {
-        db.collection("conversations")
+        messagesListener?.remove()
+        messagesListener = db.collection(FirestoreCollections.CONVERSATIONS)
             .document(conversationId)
-            .collection("messages")
+            .collection(FirestoreCollections.MESSAGES)
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, e ->
                 if (e != null || snapshot == null) {
@@ -87,33 +93,30 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
 
     fun sendMessage(receiverId: String, text: String) {
         val senderId = authViewModel.getLoggedInUserId() ?: return
+        val participants = listOf(senderId, receiverId).sorted()
+        val conversationId = participants.joinToString("_")
         viewModelScope.launch {
             try {
-                val participants = listOf(senderId, receiverId).sorted()
-                val conversationQuery = db.collection("conversations")
-                    .whereEqualTo("participants", participants)
-                    .get()
-                    .await()
+                val convoRef = db.collection(FirestoreCollections.CONVERSATIONS).document(conversationId)
+                val convoSnap = convoRef.get().await()
 
-                val conversationId = if (conversationQuery.isEmpty) {
-                    val newConversation = hashMapOf(
-                        "participants" to participants,
-                        "lastMessage" to text,
-                        "lastMessageTime" to System.currentTimeMillis(),
-                        "lastMessageSenderId" to senderId
-                    )
-                    val docRef = db.collection("conversations").add(newConversation).await()
-                    docRef.id
+                if (!convoSnap.exists()) {
+                    convoRef.set(
+                        mapOf(
+                            "participants" to participants,
+                            "lastMessage" to text,
+                            "lastMessageTime" to System.currentTimeMillis(),
+                            "lastMessageSenderId" to senderId
+                        )
+                    ).await()
                 } else {
-                    val doc = conversationQuery.documents.first()
-                    doc.reference.update(
+                    convoRef.update(
                         mapOf(
                             "lastMessage" to text,
                             "lastMessageTime" to System.currentTimeMillis(),
                             "lastMessageSenderId" to senderId
                         )
                     ).await()
-                    doc.id
                 }
 
                 val message = hashMapOf(
@@ -122,14 +125,37 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
                     "text" to text,
                     "timestamp" to System.currentTimeMillis()
                 )
-                db.collection("conversations")
+                db.collection(FirestoreCollections.CONVERSATIONS)
                     .document(conversationId)
-                    .collection("messages")
+                    .collection(FirestoreCollections.MESSAGES)
                     .add(message)
                     .await()
             } catch (e: Exception) {
                 // Handle error
             }
         }
+    }
+
+    private suspend fun fetchUserName(uid: String): String = withContext(Dispatchers.IO) {
+        // Try suppliers
+        val supplierDoc = db.collection(FirestoreCollections.SUPPLIERS).document(uid).get().await()
+        if (supplierDoc.exists()) {
+            val first = supplierDoc.getString("firstName") ?: ""
+            val last = supplierDoc.getString("lastName") ?: ""
+            return@withContext "$first $last"
+        }
+        val consumerDoc = db.collection(FirestoreCollections.CONSUMERS).document(uid).get().await()
+        if (consumerDoc.exists()) {
+            val first = consumerDoc.getString("firstName") ?: ""
+            val last = consumerDoc.getString("lastName") ?: ""
+            return@withContext "$first $last"
+        }
+        return@withContext "Unknown"
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        conversationsListener?.remove()
+        messagesListener?.remove()
     }
 }

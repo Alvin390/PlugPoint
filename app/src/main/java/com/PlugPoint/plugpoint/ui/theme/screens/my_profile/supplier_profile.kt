@@ -46,9 +46,13 @@ import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_CONSUMER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SEARCH_SUPPLIER
 import com.PlugPoint.plugpoint.navigation.ROUTE_SETTINGS
 import com.PlugPoint.plugpoint.navigation.ROUTE_SUPPLIER_ALL_REQUESTS
+import com.PlugPoint.plugpoint.navigation.ROUTE_SUPPLIER_ACCEPTED_REQUESTS
+import com.PlugPoint.plugpoint.networks.ImgurAPIFactory
 import com.PlugPoint.plugpoint.ui.theme.gray
 import com.PlugPoint.plugpoint.ui.theme.red
 import com.PlugPoint.plugpoint.ui.theme.tomato
+import com.PlugPoint.plugpoint.data.ImgurViewModel
+import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
 import kotlin.sequences.ifEmpty
 import kotlin.text.category
 
@@ -164,8 +168,8 @@ fun SupplierProfileScreen(navController: NavController,
                         onClick = {
                             when (title) {
                                 "Commodities" -> navController.navigate("$ROUTE_COMMODITY_LIST/$userId")
-                                "Accepted Requests" -> { null }
-                                "All Requests" -> null
+                                "Accepted Requests" -> navController.navigate("$ROUTE_SUPPLIER_ACCEPTED_REQUESTS/$userId")
+                                "All Requests" -> navController.navigate("$ROUTE_SUPPLIER_ALL_REQUESTS/$userId")
                                 "Edit Profile" -> {
                                     showEditDialog = true
                                 }
@@ -215,7 +219,13 @@ fun EditSupplierProfileDialog(
     var category by remember { mutableStateOf(userSupplier.category) }
     var email by remember { mutableStateOf(userSupplier.email) }
     var phoneNumber by remember { mutableStateOf(userSupplier.phoneNumber) }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
+    val imgurViewModel: ImgurViewModel = viewModel(factory = ImgurViewModelFactory(ImgurAPIFactory.create()))
+    val launchImagePicker = com.PlugPoint.plugpoint.utilis.rememberImagePickerAndUploader(
+        imgurViewModel = imgurViewModel,
+        onImageUploaded = { url -> uploadedImageUrl = url },
+        onError = { /* Optionally show error snackbar */ }
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -230,7 +240,7 @@ fun EditSupplierProfileDialog(
                 TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
                 TextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") })
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { /* Logic to pick an image */ }) {
+                Button(onClick = { launchImagePicker() }) {
                     Text("Upload Photo")
                 }
             }
@@ -246,7 +256,8 @@ fun EditSupplierProfileDialog(
                     "email" to email,
                     "phoneNumber" to phoneNumber
                 )
-                onSave(updatedData, imageUri)
+                // Use uploadedImageUrl if available, else null
+                onSave(updatedData, if (uploadedImageUrl != null) Uri.parse(uploadedImageUrl) else null)
             }) {
                 Text("Save")
             }

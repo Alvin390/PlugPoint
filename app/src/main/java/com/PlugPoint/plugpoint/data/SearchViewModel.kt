@@ -5,17 +5,27 @@ import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.PlugPoint.plugpoint.models.UserSupplier
 import com.google.firebase.firestore.FirebaseFirestore
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Job
 
 class SearchSupplierAuthViewModel : ViewModel() {
     private val firestore = FirebaseFirestore.getInstance()
 
-    private val _searchResults = MutableStateFlow<List<User>>(emptyList())
-    val searchResults: StateFlow<List<User>> = _searchResults
+    sealed class UiState<out T> {
+        object Idle : UiState<Nothing>()
+        object Loading : UiState<Nothing>()
+        data class Success<T>(val data: T) : UiState<T>()
+        data class Error(val message: String) : UiState<Nothing>()
+    }
+
+    private val _searchResults = MutableStateFlow<UiState<List<User>>>(UiState.Idle)
+    val searchResults: StateFlow<UiState<List<User>>> = _searchResults
+    private var searchJob: Job? = null
 
     sealed class User {
         data class Supplier(
@@ -30,28 +40,42 @@ class SearchSupplierAuthViewModel : ViewModel() {
     }
 
     fun searchUsers(query: String, onError: (String) -> Unit = {}) {
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            _searchResults.value = UiState.Idle
+            return
+        }
+        _searchResults.value = UiState.Loading
         val normalizedQuery = query.trim().lowercase()
 
-        viewModelScope.launch {
+        searchJob = viewModelScope.launch {
             try {
                 val suppliersDeferred = async {
-                    firestore.collection("suppliers")
+                    firestore.collection(FirestoreCollections.SUPPLIERS)
+                        .orderBy("firstName")
+                        .startAt(normalizedQuery)
+                        .endAt(normalizedQuery + "\uf8ff")
+                        .limit(10)
                         .get()
                         .await()
                         .documents.mapNotNull { document ->
                             document.toObject(UserSupplier::class.java)?.let { user ->
-                                User.Supplier(user = user, id = document.id) // Pass document.id as id
+                                User.Supplier(user = user, id = document.id)
                             }
                         }
                 }
 
                 val consumersDeferred = async {
-                    firestore.collection("consumers")
+                    firestore.collection(FirestoreCollections.CONSUMERS)
+                        .orderBy("firstName")
+                        .startAt(normalizedQuery)
+                        .endAt(normalizedQuery + "\uf8ff")
+                        .limit(10)
                         .get()
                         .await()
                         .documents.mapNotNull { document ->
                             document.toObject(UserConsumer::class.java)?.let { user ->
-                                User.Consumer(user = user, id = document.id) // Pass document.id as id
+                                User.Consumer(user = user, id = document.id)
                             }
                         }
                 }
@@ -61,7 +85,7 @@ class SearchSupplierAuthViewModel : ViewModel() {
 
                 val allUsers = suppliers + consumers
 
-                _searchResults.value = allUsers.filter { user ->
+                val filtered = allUsers.filter { user ->
                     when (user) {
                         is User.Supplier -> {
                             with(user.user) {
@@ -83,10 +107,10 @@ class SearchSupplierAuthViewModel : ViewModel() {
                         }
                     }
                 }
-
+                _searchResults.value = UiState.Success(filtered)
             } catch (e: Exception) {
                 onError("Error fetching users: ${e.message}")
-                _searchResults.value = emptyList()
+                _searchResults.value = UiState.Error(e.message ?: "Unknown error")
             }
         }
     }

@@ -42,6 +42,7 @@ import com.PlugPoint.plugpoint.R
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.PlugPoint.plugpoint.utilis.rememberImagePickerAndUploader
 import com.PlugPoint.plugpoint.data.AuthViewModel
 import com.PlugPoint.plugpoint.data.ImgurUploadState
 import com.PlugPoint.plugpoint.data.ImgurViewModel
@@ -377,14 +378,14 @@ fun EditConsumerProfileDialog(
     var category by remember { mutableStateOf(userConsumer.category) }
     var email by remember { mutableStateOf(userConsumer.email) }
     var phoneNumber by remember { mutableStateOf(userConsumer.phoneNumber) }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    val context = LocalContext.current
-    val imgurViewModel: ImgurViewModel = viewModel(factory = ImgurViewModelFactory(ImgurAPIFactory.create()))
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri
-        imgurViewModel.uploadImage(uri, context, "Client-ID 7d779f374d40497")
-    }
+    var uploadedImageUrl by remember { mutableStateOf<String?>(null) }
+    val imgurViewModel: ImgurViewModel = viewModel(factory = ImgurViewModelFactory(ImgurAPIFactory.create()))
+    val launchImagePicker = rememberImagePickerAndUploader(
+        imgurViewModel = imgurViewModel,
+        onImageUploaded = { url -> uploadedImageUrl = url },
+        onError = { /* Optionally show error snackbar */ }
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -398,7 +399,7 @@ fun EditConsumerProfileDialog(
                 TextField(value = email, onValueChange = { email = it }, label = { Text("Email") })
                 TextField(value = phoneNumber, onValueChange = { phoneNumber = it }, label = { Text("Phone Number") })
                 Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { launcher.launch("image/*") }) {
+                Button(onClick = { launchImagePicker() }) {
                     Text("Upload Photo")
                 }
             }
@@ -413,7 +414,8 @@ fun EditConsumerProfileDialog(
                     "email" to email,
                     "phoneNumber" to phoneNumber
                 )
-                onSave(updatedData, imageUri) // Pass Uri? directly
+                // Use uploadedImageUrl if available, else null
+                onSave(updatedData, if (uploadedImageUrl != null) Uri.parse(uploadedImageUrl) else null)
             }) {
                 Text("Save")
             }

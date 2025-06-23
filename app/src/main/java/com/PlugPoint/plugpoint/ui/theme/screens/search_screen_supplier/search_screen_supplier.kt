@@ -27,6 +27,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.PlugPoint.plugpoint.utilis.Debouncer
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,14 +54,16 @@ import androidx.compose.ui.text.style.TextOverflow
 
 @Composable
 fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplierAuthViewModel, userId: String) {
+    val coroutineScope = rememberCoroutineScope()
+    val debouncer = remember { Debouncer(coroutineScope) }
     var searchText by remember { mutableStateOf("") }
-    val searchResults by viewModel.searchResults.collectAsState()
+    val searchResultsState by viewModel.searchResults.collectAsState()
 
     Scaffold(
         topBar = {
             SearchBarUI(searchText) { query ->
                 searchText = query.trim().lowercase() // Normalize query
-                viewModel.searchUsers(searchText) // Trigger search on query change
+                debouncer.submit { viewModel.searchUsers(searchText) } // Trigger search on query change
             }
         },
         bottomBar = { SupplierBottomNavBar(navController,userId) }
@@ -70,18 +74,34 @@ fun SearchScreenSupplier(navController: NavController, viewModel: SearchSupplier
                 .padding(padding)
                 .background(Color.White)
         ) {
-            if (searchText.isNotEmpty() && searchResults.isEmpty()) {
-                Text(
-                    "No results found",
-                    color = Color.Gray,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(searchResults) { user ->
-                        UserRow(user = user, navController = navController, searcherRole = "supplier") // Pass the searcherRole
+            when (searchResultsState) {
+                is SearchSupplierAuthViewModel.UiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is SearchSupplierAuthViewModel.UiState.Error -> {
+                    Text(
+                        (searchResultsState as SearchSupplierAuthViewModel.UiState.Error).message,
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                is SearchSupplierAuthViewModel.UiState.Success -> {
+                    val users = (searchResultsState as SearchSupplierAuthViewModel.UiState.Success<List<User>>).data
+                    if (searchText.isNotEmpty() && users.isEmpty()) {
+                        Text(
+                            "No results found",
+                            color = Color.Gray,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(users) { user ->
+                                UserRow(user = user, navController = navController, searcherRole = "supplier")
+                            }
+                        }
                     }
                 }
+                else -> {}
             }
         }
     }

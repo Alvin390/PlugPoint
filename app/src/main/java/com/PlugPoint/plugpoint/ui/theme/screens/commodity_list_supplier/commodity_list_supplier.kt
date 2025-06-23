@@ -4,6 +4,11 @@ import CommodityViewModel
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.PlugPoint.plugpoint.utilis.rememberImagePickerAndUploader
+import com.PlugPoint.plugpoint.data.ImgurViewModel
+import com.PlugPoint.plugpoint.utilis.ImgurViewModelFactory
+import com.PlugPoint.plugpoint.networks.ImgurAPIFactory
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,7 +40,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil3.compose.rememberAsyncImagePainter
-import com.PlugPoint.plugpoint.data.ImgurViewModel
 import com.PlugPoint.plugpoint.models.Commodity
 import com.PlugPoint.plugpoint.ui.theme.amberBlaze
 import com.PlugPoint.plugpoint.ui.theme.dimGray
@@ -54,11 +58,12 @@ fun SupplierCommodityScreen(
     userId: String,
     imgurViewModel: ImgurViewModel
 ) {
+    val context = LocalContext.current
     val commodityViewModel: CommodityViewModel = viewModel(
         factory = CommoditiesViewModelFactory(imgurViewModel)
     )
 
-    val context = LocalContext.current
+
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -67,7 +72,7 @@ fun SupplierCommodityScreen(
     var isEditing by remember { mutableStateOf(false) }
     var selectedCommodity by remember { mutableStateOf<Commodity?>(null) }
 
-    val commodities by commodityViewModel.commodities.collectAsState()
+    val commoditiesState by commodityViewModel.commodities.collectAsState()
 
     LaunchedEffect(userId) {
         commodityViewModel.fetchCommoditiesFromFirestore(userId)
@@ -126,17 +131,35 @@ fun SupplierCommodityScreen(
                 .padding(padding)
                 .background(Color.White)
         ) {
-            LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp)) {
-                items(commodities, key = { it.id }) { commodity ->
-                    CommodityListItem(
-                        commodity = commodity,
-                        onClick = {
-                            selectedCommodity = commodity
-                            showDialog = false
-                            showActionDialog=true
-                        }
-                    )
+            when (commoditiesState) {
+                is CommodityViewModel.UiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
+                is CommodityViewModel.UiState.Error -> {
+                    Text((commoditiesState as CommodityViewModel.UiState.Error).message, color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                }
+                is CommodityViewModel.UiState.Success -> {
+                    val commodities = (commoditiesState as CommodityViewModel.UiState.Success<List<Commodity>>).data
+                    if (commodities.isEmpty()) {
+                        Text("No commodities available", modifier = Modifier.align(Alignment.Center))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(8.dp)
+                        ) {
+                            items(commodities) { commodity ->
+                                CommodityListItem(
+                                    commodity = commodity,
+                                    onClick = {
+                                        selectedCommodity = commodity
+                                        showActionDialog = true
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                else -> {}
             }
 
             if (showDialog) {
@@ -232,12 +255,14 @@ fun PostCommodityDialog(
     var quantity by remember { mutableStateOf(initialCommodity?.quantity ?: "") }
     var cost by remember { mutableStateOf(initialCommodity?.cost ?: "") }
     var currency by remember { mutableStateOf(initialCommodity?.currency ?: "Ksh") }
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var uploadedImageUrl by remember { mutableStateOf<String?>(initialCommodity?.imageUri) }
     var expanded by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri
-    }
+    val imgurViewModel: ImgurViewModel = viewModel(factory = ImgurViewModelFactory(ImgurAPIFactory.create()))
+    val launchImagePicker = rememberImagePickerAndUploader(
+        imgurViewModel = imgurViewModel,
+        onImageUploaded = { url -> uploadedImageUrl = url },
+        onError = { /* Optionally show error snackbar */ }
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -264,7 +289,7 @@ fun PostCommodityDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Image Upload Section
                 Button(
-                    onClick = { launcher.launch("image/*") },
+                    onClick = { launchImagePicker() },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -278,7 +303,7 @@ fun PostCommodityDialog(
                     Text("Upload Image", color = Color.White)
                 }
 
-                imageUri?.let {
+                uploadedImageUrl?.let {
                     Image(
                         painter = rememberAsyncImagePainter(it),
                         contentDescription = null,
@@ -340,7 +365,7 @@ fun PostCommodityDialog(
                                 quantity = quantity,
                                 cost = cost,
                                 currency = currency,
-                                imageUri = imageUri?.toString(),
+                                imageUri = uploadedImageUrl,
                                 booked = initialCommodity?.booked ?: false
                             )
                         )

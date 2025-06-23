@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import com.PlugPoint.plugpoint.utilis.Debouncer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,14 +37,16 @@ import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNa
 
 @Composable
 fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplierAuthViewModel, userId: String) {
+    val coroutineScope = rememberCoroutineScope()
+    val debouncer = remember { Debouncer(coroutineScope) }
     var searchText by remember { mutableStateOf("") }
-    val searchResults by viewModel.searchResults.collectAsState()
+    val searchResultsState by viewModel.searchResults.collectAsState()
 
     Scaffold(
         topBar = {
             SearchBarUI(searchText) { query ->
                 searchText = query.trim().lowercase() // Normalize query
-                viewModel.searchUsers(searchText) // Trigger search on query change
+                debouncer.submit { viewModel.searchUsers(searchText) } // Trigger search on query change
             }
         },
         bottomBar = { ConsumerBottomNavBar(navController,userId) }
@@ -54,18 +57,34 @@ fun SearchConsumerScreen(navController: NavController, viewModel: SearchSupplier
                 .padding(padding)
                 .background(Color.White)
         ) {
-            if (searchText.isNotEmpty() && searchResults.isEmpty()) {
-                Text(
-                    "No results found",
-                    color = Color.Gray,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(searchResults) { user ->
-                        UserRow(user = user, navController = navController, searcherRole = "consumer")
+            when (searchResultsState) {
+                is SearchSupplierAuthViewModel.UiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is SearchSupplierAuthViewModel.UiState.Error -> {
+                    Text(
+                        (searchResultsState as SearchSupplierAuthViewModel.UiState.Error).message,
+                        color = Color.Red,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                is SearchSupplierAuthViewModel.UiState.Success -> {
+                    val users = (searchResultsState as SearchSupplierAuthViewModel.UiState.Success<List<SearchSupplierAuthViewModel.User>>).data
+                    if (searchText.isNotEmpty() && users.isEmpty()) {
+                        Text(
+                            "No results found",
+                            color = Color.Gray,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(users) { user ->
+                                UserRow(user = user, navController = navController, searcherRole = "consumer")
+                            }
+                        }
                     }
                 }
+                else -> {}
             }
         }
     }

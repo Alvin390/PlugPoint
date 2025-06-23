@@ -5,14 +5,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,13 +35,12 @@ import com.PlugPoint.plugpoint.ui.theme.blue1
 import com.PlugPoint.plugpoint.ui.theme.green1
 import com.PlugPoint.plugpoint.ui.theme.lightBlue
 import com.PlugPoint.plugpoint.ui.theme.screens.commodity_list_supplier.CommodityListItem
-import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.consumerprofile.ConsumerTopBar
+import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierBottomNavBar
 import com.PlugPoint.plugpoint.ui.theme.screens.my_profile.SupplierTopBar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
-import kotlin.toString
 
 // Updated CommodityView function with proper currency handling
 // Updated CommodityView function with proper currency handling
@@ -44,19 +49,35 @@ fun CommodityView(
     navController: NavController,
     supplierId: String,
     searcherRole: String,
-    viewModel: CommodityShowViewModel = viewModel(),
-    requestsViewModel: RequestsViewModel = viewModel()
+    viewModel: CommodityShowViewModel = viewModel()
 ) {
-    val commodities = viewModel.commodities.collectAsState().value
+    val commoditiesState = viewModel.commodities.collectAsState().value
+    val listState = rememberLazyListState()
+    // Detect when we should load next page (when the last visible item is within 5 items of the end)
+    val shouldLoadNext by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val total = (commoditiesState as? CommodityShowViewModel.UiState.Success<List<Commodity>>)?.data?.size ?: 0
+            lastVisible >= total - 4
+        }
+    }
     val showDialog = remember { mutableStateOf(false) }
     val selectedCommodity = remember { mutableStateOf<Commodity?>(null) }
-    val consumerId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
     val snackbarHostState = remember { SnackbarHostState() } // Add Snackbar for error feedback
-    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(supplierId) {
-        viewModel.fetchCommoditiesForSupplier(supplierId)
+        viewModel.loadFirstPage(supplierId)
     }
+
+    // Trigger pagination when needed
+    LaunchedEffect(shouldLoadNext) {
+        if (shouldLoadNext && viewModel.hasMore()) {
+            viewModel.loadNextPage(supplierId)
+        }
+    }
+
+    // backward compatibility: ensure first page loaded
+    // viewModel.fetchCommoditiesForSupplier(supplierId) // deprecated wrapper
 
     Scaffold(
         topBar = {
@@ -73,73 +94,43 @@ fun CommodityView(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (commodities.isEmpty()) {
-                Text("No commodities available", modifier = Modifier.padding(16.dp))
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    items(commodities) { commodity ->
-                        CommodityListItem(
-                            commodity = commodity,
-                            onClick = {
-                                if (searcherRole == "consumer") {
-                                    selectedCommodity.value = commodity
-                                    showDialog.value = true
-                                }
+            when (commoditiesState) {
+                is CommodityShowViewModel.UiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is CommodityShowViewModel.UiState.Error -> {
+                    Text((commoditiesState as CommodityShowViewModel.UiState.Error).message, color = Color.Red, modifier = Modifier.align(Alignment.Center))
+                }
+                is CommodityShowViewModel.UiState.Success -> {
+                    val commodities = (commoditiesState as CommodityShowViewModel.UiState.Success<List<Commodity>>).data
+                    if (commodities.isEmpty()) {
+                        Text("No commodities available", modifier = Modifier.padding(16.dp))
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            state = listState
+                        ) {
+                            items(commodities) { commodity ->
+                                CommodityListItem(
+                                    commodity = commodity,
+                                    onClick = {
+                                        if (searcherRole == "consumer") {
+                                            selectedCommodity.value = commodity
+                                            showDialog.value = true
+                                        }
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
+                else -> {}
             }
         }
     }
 
-    if (showDialog.value) {
-        selectedCommodity.value?.let { commodity ->
-            RequestDialog(
-                commodity = commodity,
-                onDismiss = { showDialog.value = false },
-                onConfirm = { quantity, paymentMethod ->
-                    if (consumerId.isBlank()) {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar("Request made !")
-                            showDialog.value = false
-                        }
-                        return@RequestDialog
-                    }
-                    // Extract numeric part of the cost
-                    val costPerUnit = extractNumericCost(commodity.cost)
-                    val totalCost = requestsViewModel.calculateTotalCost(quantity, costPerUnit)
-                    val request = Requests(
-                        consumerId = consumerId,
-                        supplierId = commodity.supplierId,
-                        commodityId = commodity.id,
-                        quantity = quantity,
-                        totalCost = totalCost,
-                        paymentMethod = paymentMethod,
-                        currency = commodity.currency // Use commodity currency
-                    )
-                    requestsViewModel.saveRequest(
-                        request,
-                        onSuccess = {
-                            showDialog.value = false
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar("Request submitted successfully")
-                            }
-                        },
-                        onFailure = { e ->
-                            coroutineScope.launch {
-//                                snackbarHostState.showSnackbar("Failed to submit request: ${e.message}")
-                                snackbarHostState.showSnackbar("Request Complete !!")
-                            }
-                        }
-                    )
-                }
-            )
-        }
-    }
+
 }
 
 // Helper function to extract numeric value from cost string

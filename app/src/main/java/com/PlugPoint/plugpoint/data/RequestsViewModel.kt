@@ -6,6 +6,7 @@ import com.PlugPoint.plugpoint.models.Commodity
 import com.PlugPoint.plugpoint.models.Requests
 import com.PlugPoint.plugpoint.models.UserConsumer
 import com.google.firebase.firestore.FirebaseFirestore
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -39,7 +40,7 @@ class RequestsViewModel : ViewModel() {
                     throw Exception("Consumer ID is blank")
                 }
                 // Check if consumer exists by document ID
-                val consumerDoc = firestore.collection("users_consumer")
+                val consumerDoc = firestore.collection(FirestoreCollections.CONSUMERS)
                     .document(request.consumerId)
                     .get()
                     .await()
@@ -50,7 +51,7 @@ class RequestsViewModel : ViewModel() {
                 if (request.commodityId.isBlank()) {
                     throw Exception("Commodity ID is blank")
                 }
-                val commodityDoc = firestore.collection("commodities")
+                val commodityDoc = firestore.collection(FirestoreCollections.COMMODITIES_TOP)
                     .document(request.commodityId)
                     .get()
                     .await()
@@ -58,7 +59,7 @@ class RequestsViewModel : ViewModel() {
                     throw Exception("No commodity found for commodityId ${request.commodityId}")
                 }
 
-                firestore.collection("requests")
+                firestore.collection(FirestoreCollections.REQUESTS)
                     .add(request)
                     .await()
                 println("saveRequest: Request saved successfully for consumerId ${request.consumerId}, commodityId ${request.commodityId}")

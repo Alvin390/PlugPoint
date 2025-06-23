@@ -38,6 +38,7 @@ import androidx.core.net.toUri
 fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsViewModel = viewModel()) {
     val requests by viewModel.requests.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val hasMoreData by viewModel.hasMoreData.collectAsState()
     val context = LocalContext.current
     var selectedRequest by remember { mutableStateOf<RequestWithNames?>(null) }
     var isCalling by remember { mutableStateOf(false) }
@@ -116,6 +117,19 @@ fun SupplierAllRequestsScreen(supplierId: String, viewModel: SupplierRequestsVie
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     items(requests) { requestWithNames ->
                         RequestItem(requestWithNames = requestWithNames, onClick = { selectedRequest = requestWithNames })
+                    }
+                    if (hasMoreData) {
+                        item {
+                            Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                if (isLoading) {
+                                    CircularProgressIndicator()
+                                } else {
+                                    Button(onClick = { viewModel.loadMoreRequests(supplierId) }) {
+                                        Text("Load More")
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -1,6 +1,5 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.registration_supplier
 
-import android.R
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context

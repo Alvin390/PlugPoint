@@ -35,6 +35,7 @@ import com.PlugPoint.plugpoint.ui.theme.screens.splashscreen.SplashScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.supplier_all_requests.SupplierAllRequestsScreen
 import com.PlugPoint.plugpoint.ui.theme.screens.supplier_view.SupplierView
 
+@Suppress("ViewModelConstructorInComposable")
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,

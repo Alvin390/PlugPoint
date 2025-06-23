@@ -2,56 +2,97 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.Commodity
+import com.PlugPoint.plugpoint.utilis.FirestoreCollections
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Job
 
 class CommodityShowViewModel : ViewModel() {
+    companion object { private const val PAGE_SIZE = 20 }
+
     private val firestore = FirebaseFirestore.getInstance()
-    private val _commodities = MutableStateFlow<List<Commodity>>(emptyList())
-    val commodities: StateFlow<List<Commodity>> = _commodities
+    sealed class UiState<out T> {
+        object Idle : UiState<Nothing>()
+        object Loading : UiState<Nothing>()
+        data class Success<T>(val data: T) : UiState<T>()
+        data class Error(val message: String) : UiState<Nothing>()
+    }
 
-    fun fetchCommoditiesForSupplier(supplierId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+    private val _commodities = MutableStateFlow<UiState<List<Commodity>>>(UiState.Idle)
+    val commodities: StateFlow<UiState<List<Commodity>>> = _commodities
+    private var lastVisibleSnapshot: com.google.firebase.firestore.DocumentSnapshot? = null
+    private var isLastPage = false
+    private var loadJob: Job? = null
+
+    fun loadFirstPage(supplierId: String) {
+        loadJob?.cancel()
+        _commodities.value = UiState.Loading
+        lastVisibleSnapshot = null
+        isLastPage = false
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                // Fetch from the nested commodities collection under the specific supplier
-                val snapshot = firestore.collection("suppliers")
+                val baseQuery = firestore.collection(FirestoreCollections.SUPPLIERS)
                     .document(supplierId)
-                    .collection("commodities")
-                    .get()
-                    .await()
-
-                // Detailed logging
-                Log.d("CommodityFetch", "Total commodities found: ${snapshot.size()}")
-
-                // Convert documents to Commodity objects
-                val fetchedCommodities = snapshot.documents.mapNotNull { document ->
-                    document.toObject(Commodity::class.java)?.apply {
-                        id = document.id
-                    }
+                    .collection(FirestoreCollections.COMMODITIES_SUB)
+                    .orderBy("name")
+                    .limit(PAGE_SIZE.toLong())
+                val snapshot = baseQuery.get().await()
+                val newItems = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Commodity::class.java)?.apply { id = doc.id }
                 }
-
-                // Update state flow
-                _commodities.value = fetchedCommodities
-
-                // Logging
-                Log.d("CommodityFetch", "Fetched Commodities: $fetchedCommodities")
+                lastVisibleSnapshot = snapshot.documents.lastOrNull()
+                if (snapshot.size() < PAGE_SIZE) isLastPage = true
+                _commodities.value = UiState.Success(newItems)
             } catch (e: Exception) {
-                Log.e("CommodityFetch", "Error fetching commodities", e)
-                _commodities.value = emptyList()
+                _commodities.value = UiState.Error(e.message ?: "Unknown error")
             }
         }
     }
+
+    fun loadNextPage(supplierId: String) {
+        if (isLastPage) return
+        loadJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val baseQuery = firestore.collection(FirestoreCollections.SUPPLIERS)
+                    .document(supplierId)
+                    .collection(FirestoreCollections.COMMODITIES_SUB)
+                    .orderBy("name")
+                    .limit(PAGE_SIZE.toLong())
+                val query = lastVisibleSnapshot?.let { baseQuery.startAfter(it) } ?: baseQuery
+                val snapshot = query.get().await()
+
+                val newItems = snapshot.documents.mapNotNull { doc ->
+                    doc.toObject(Commodity::class.java)?.apply { id = doc.id }
+                }
+                lastVisibleSnapshot = snapshot.documents.lastOrNull()
+                if (snapshot.size() < PAGE_SIZE) isLastPage = true
+
+                val oldList = (commodities.value as? UiState.Success)?.data ?: emptyList()
+                _commodities.value = UiState.Success(oldList + newItems)
+            } catch (e: Exception) {
+                _commodities.value = UiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    fun hasMore(): Boolean = !isLastPage
+
+    // Backward compatibility: delegate to loadFirstPage
+    fun fetchCommoditiesForSupplier(supplierId: String) {
+        loadFirstPage(supplierId)
+    }
+
 
     // Optional: Add diagnostic method
     fun printSupplierCommodityStructure(supplierId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Get the supplier document
-                val supplierDoc = firestore.collection("suppliers")
+                val supplierDoc = firestore.collection(FirestoreCollections.SUPPLIERS)
                     .document(supplierId)
                     .get()
                     .await()
@@ -62,9 +103,9 @@ class CommodityShowViewModel : ViewModel() {
                 }
 
                 // List all commodities for this supplier
-                val commoditiesSnapshot = firestore.collection("suppliers")
+                val commoditiesSnapshot = firestore.collection(FirestoreCollections.SUPPLIERS)
                     .document(supplierId)
-                    .collection("commodities")
+                    .collection(FirestoreCollections.COMMODITIES_SUB)
                     .get()
                     .await()
 
