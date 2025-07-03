@@ -41,7 +41,7 @@ import com.PlugPoint.plugpoint.ui.theme.neworange1
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf<Boolean>(false) }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
@@ -191,7 +191,7 @@ fun StyledTextField(
     keyboardType: KeyboardType,
     isPassword: Boolean = false
 ) {
-    var isPasswordVisible by remember { mutableStateOf(false) }
+    var isPasswordVisible by remember { mutableStateOf<Boolean>(false) }
 
     OutlinedTextField(
         value = value,

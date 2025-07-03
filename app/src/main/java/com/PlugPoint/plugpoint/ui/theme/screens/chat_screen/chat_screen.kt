@@ -1,5 +1,7 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.chat_screen
 
+import androidx.compose.runtime.*
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -28,7 +30,10 @@ fun ChatScreen(
     authViewModel: AuthViewModel
 ) {
     val conversations by chatViewModel.conversations.collectAsState()
-    val userId = authViewModel.getLoggedInUserId()
+    var userId by remember { mutableStateOf<String?>(null) }
+LaunchedEffect(Unit) {
+    userId = authViewModel.getLoggedInUserId()
+}
 
     if (userId == null) {
         Text(
@@ -54,31 +59,31 @@ fun ChatScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        if (conversations.isEmpty()) {
-            Text(
-                text = "No conversations yet.",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .wrapContentSize(Alignment.Center),
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            LazyColumn {
-                items(conversations) { conversation ->
-                    ConversationItem(
-                        conversation = conversation,
-                        currentUserId = userId,
-                        onClick = {
-                            navController.navigate("chat_screen_2/${conversation.otherUserId}")
-                        }
-                    )
-                    Divider()
+            if (conversations.isEmpty()) {
+                Text(
+                    text = "No conversations yet.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentSize(Alignment.Center),
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                LazyColumn {
+                    items(conversations) { conversation ->
+                        ConversationItem(
+                            conversation = conversation,
+                            currentUserId = userId!!,
+                            onClick = {
+                                navController.navigate("chat_screen_2/${conversation.otherUserId}")
+                            }
+                        )
+                        Divider()
+                    }
                 }
             }
         }
     }
-}
 
 @Composable
 fun ConversationItem(

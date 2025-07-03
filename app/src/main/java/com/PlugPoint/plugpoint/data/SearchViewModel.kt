@@ -53,9 +53,7 @@ class SearchSupplierAuthViewModel : ViewModel() {
                 val suppliersDeferred = async {
                     firestore.collection(FirestoreCollections.SUPPLIERS)
                         .orderBy("firstName")
-                        .startAt(normalizedQuery)
-                        .endAt(normalizedQuery + "\uf8ff")
-                        .limit(10)
+                        .limit(20)
                         .get()
                         .await()
                         .documents.mapNotNull { document ->
@@ -68,9 +66,7 @@ class SearchSupplierAuthViewModel : ViewModel() {
                 val consumersDeferred = async {
                     firestore.collection(FirestoreCollections.CONSUMERS)
                         .orderBy("firstName")
-                        .startAt(normalizedQuery)
-                        .endAt(normalizedQuery + "\uf8ff")
-                        .limit(10)
+                        .limit(20)
                         .get()
                         .await()
                         .documents.mapNotNull { document ->
@@ -82,6 +78,9 @@ class SearchSupplierAuthViewModel : ViewModel() {
 
                 val suppliers = suppliersDeferred.await()
                 val consumers = consumersDeferred.await()
+
+                android.util.Log.d("PlugPointSearch", "Suppliers found: ${suppliers.size}")
+                android.util.Log.d("PlugPointSearch", "Consumers found: ${consumers.size}")
 
                 val allUsers = suppliers + consumers
 
@@ -107,8 +106,10 @@ class SearchSupplierAuthViewModel : ViewModel() {
                         }
                     }
                 }
+                android.util.Log.d("PlugPointSearch", "Filtered users: ${filtered.size}")
                 _searchResults.value = UiState.Success(filtered)
             } catch (e: Exception) {
+                android.util.Log.e("PlugPointSearch", "Error fetching users: ${e.message}", e)
                 onError("Error fetching users: ${e.message}")
                 _searchResults.value = UiState.Error(e.message ?: "Unknown error")
             }

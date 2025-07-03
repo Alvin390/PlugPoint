@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.commodity_view
 
+import android.util.Log
 import CommodityShowViewModel
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -52,6 +53,7 @@ fun CommodityView(
     viewModel: CommodityShowViewModel = viewModel()
 ) {
     val commoditiesState = viewModel.commodities.collectAsState().value
+    Log.d("PlugPointDebug", "searcherRole at start: $searcherRole")
     val listState = rememberLazyListState()
     // Detect when we should load next page (when the last visible item is within 5 items of the end)
     val shouldLoadNext by remember {
@@ -64,6 +66,7 @@ fun CommodityView(
     val showDialog = remember { mutableStateOf(false) }
     val selectedCommodity = remember { mutableStateOf<Commodity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() } // Add Snackbar for error feedback
+    fun log(msg: String) = android.util.Log.d("PlugPointDebug", msg)
 
     LaunchedEffect(supplierId) {
         viewModel.loadFirstPage(supplierId)
@@ -115,9 +118,11 @@ fun CommodityView(
                                 CommodityListItem(
                                     commodity = commodity,
                                     onClick = {
+                                        Log.d("PlugPointDebug", "Commodity clicked: ${commodity.name}, id=${commodity.id}")
                                         if (searcherRole == "consumer") {
                                             selectedCommodity.value = commodity
                                             showDialog.value = true
+                                            Log.d("PlugPointDebug", "showDialog set to true, selectedCommodity set")
                                         }
                                     }
                                 )
@@ -127,9 +132,55 @@ fun CommodityView(
                 }
                 else -> {}
             }
+            // Show the RequestDialog if needed
+            // RequestsViewModel for request creation
+            val requestsViewModel: RequestsViewModel = viewModel()
+            val auth = FirebaseAuth.getInstance()
+            val consumerId = auth.currentUser?.uid ?: ""
+            if (showDialog.value && selectedCommodity.value != null) {
+                log("Rendering RequestDialog for commodity: ${selectedCommodity.value?.name}")
+                RequestDialog(
+                    commodity = selectedCommodity.value!!,
+                    onDismiss = { showDialog.value = false },
+                    onConfirm = { quantity, paymentMethod ->
+                        val commodity = selectedCommodity.value!!
+                        val totalCost = quantity * (commodity.cost.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0)
+                        val request = Requests(
+                            consumerId = consumerId,
+                            supplierId = supplierId,
+                            commodityId = commodity.id ?: "",
+                            quantity = quantity,
+                            totalCost = totalCost,
+                            paymentMethod = paymentMethod,
+                            currency = commodity.currency,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        requestsViewModel.saveRequest(
+                            request = request,
+                            onSuccess = {
+                                showDialog.value = false
+                                // Show success snackbar
+                                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                                    snackbarHostState.showSnackbar("Request sent successfully!")
+                                }
+                            },
+                            onFailure = { e ->
+                                showDialog.value = false
+                                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                                    snackbarHostState.showSnackbar("Failed to send request: ${e.message}")
+                                }
+                            }
+                        )
+                    }
+                )
+            }
+            // Fallback visual indicator if dialog should be up but isn't
+            if (showDialog.value && selectedCommodity.value == null) {
+                log("showDialog true but selectedCommodity is null!")
+                Text("[DEBUG] Dialog state true but no selected commodity", color = Color.Red)
+            }
         }
     }
-
 
 }
 

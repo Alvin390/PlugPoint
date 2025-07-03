@@ -31,40 +31,42 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
     }
 
     private fun listenForConversations() {
-        val userId = authViewModel.getLoggedInUserId() ?: return
-        conversationsListener?.remove()
-        conversationsListener = db.collection(FirestoreCollections.CONVERSATIONS)
-            .whereArrayContains("participants", userId)
-            .orderBy("lastMessageTime", Query.Direction.DESCENDING)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null || snapshot == null) {
-                    _conversations.value = emptyList()
-                    return@addSnapshotListener
-                }
-                viewModelScope.launch {
-                    val conversations = snapshot.documents.mapNotNull { doc ->
-                        val participants = doc.get("participants") as? List<String> ?: return@mapNotNull null
-                        val otherUserId = participants.find { it != userId }
-                        if (otherUserId.isNullOrBlank()) return@mapNotNull null // Prevent crash
-
-                        val lastMessage = doc.getString("lastMessage") ?: ""
-                        val lastMessageTime = doc.getLong("lastMessageTime") ?: 0L
-                        val lastMessageSenderId = doc.getString("lastMessageSenderId") ?: ""
-
-                        val otherUserName = fetchUserName(otherUserId)
-
-                        Conversation(
-                            id = doc.id,
-                            otherUserId = otherUserId,
-                            otherUserName = otherUserName,
-                            lastMessage = lastMessage,
-                            lastMessageTime = lastMessageTime,
-                            lastMessageSenderId = lastMessageSenderId
-                        )
+        viewModelScope.launch {
+            val userId = authViewModel.getLoggedInUserId() ?: return@launch
+            conversationsListener?.remove()
+            conversationsListener = db.collection(FirestoreCollections.CONVERSATIONS)
+                .whereArrayContains("participants", userId)
+                .orderBy("lastMessageTime", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null || snapshot == null) {
+                        _conversations.value = emptyList()
+                        return@addSnapshotListener
                     }
-                    _conversations.value = conversations // Firestore handles sorting
+                    viewModelScope.launch {
+                        val conversations = snapshot.documents.mapNotNull { doc ->
+                            val participants = doc.get("participants") as? List<String> ?: return@mapNotNull null
+                            val otherUserId = participants.find { it != userId }
+                            if (otherUserId.isNullOrBlank()) return@mapNotNull null // Prevent crash
+
+                            val lastMessage = doc.getString("lastMessage") ?: ""
+                            val lastMessageTime = doc.getLong("lastMessageTime") ?: 0L
+                            val lastMessageSenderId = doc.getString("lastMessageSenderId") ?: ""
+
+                            val otherUserName = fetchUserName(otherUserId)
+
+                            Conversation(
+                                id = doc.id,
+                                otherUserId = otherUserId,
+                                otherUserName = otherUserName,
+                                lastMessage = lastMessage,
+                                lastMessageTime = lastMessageTime,
+                                lastMessageSenderId = lastMessageSenderId
+                            )
+                        }
+                        _conversations.value = conversations // Firestore handles sorting
+                    }
                 }
-            }
+        }
     }
 
     fun listenForMessages(conversationId: String) {
@@ -92,20 +94,20 @@ class ChatViewModel(private val authViewModel: AuthViewModel) : ViewModel() {
     }
 
     fun sendMessage(receiverId: String, text: String) {
-        val senderId = authViewModel.getLoggedInUserId() ?: return
+    viewModelScope.launch {
+        val senderId = authViewModel.getLoggedInUserId() ?: return@launch
         val participants = listOf(senderId, receiverId).sorted()
         val conversationId = participants.joinToString("_")
-        viewModelScope.launch {
-            try {
-                val convoRef = db.collection(FirestoreCollections.CONVERSATIONS).document(conversationId)
-                val convoSnap = convoRef.get().await()
+        try {
+            val convoRef = db.collection(FirestoreCollections.CONVERSATIONS).document(conversationId)
+            val convoSnap = convoRef.get().await()
 
-                if (!convoSnap.exists()) {
-                    convoRef.set(
-                        mapOf(
-                            "participants" to participants,
-                            "lastMessage" to text,
-                            "lastMessageTime" to System.currentTimeMillis(),
+            if (!convoSnap.exists()) {
+                convoRef.set(
+                    mapOf(
+                        "participants" to participants,
+                        "lastMessage" to text,
+                        "lastMessageTime" to System.currentTimeMillis(),
                             "lastMessageSenderId" to senderId
                         )
                     ).await()

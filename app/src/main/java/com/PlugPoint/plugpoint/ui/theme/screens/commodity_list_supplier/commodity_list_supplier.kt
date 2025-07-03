@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import coil3.compose.rememberAsyncImagePainter
+import coil.compose.rememberAsyncImagePainter
 import com.PlugPoint.plugpoint.models.Commodity
 import com.PlugPoint.plugpoint.ui.theme.amberBlaze
 import com.PlugPoint.plugpoint.ui.theme.dimGray

@@ -2,9 +2,15 @@ package com.PlugPoint.plugpoint.data
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import android.net.Uri
-import androidx.core.content.edit
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.PlugPoint.plugpoint.models.UserConsumer
@@ -40,32 +46,48 @@ class AuthViewModel(
     private val _registrationState = MutableStateFlow<RegistrationState>(RegistrationState.Idle)
     val registrationState: StateFlow<RegistrationState> = _registrationState
 
-    private val sharedPreferences: SharedPreferences =
-        context.getSharedPreferences("PlugPointPrefs", Context.MODE_PRIVATE)
+    companion object {
+        private val IS_LOGGED_IN_KEY = booleanPreferencesKey("isLoggedIn")
+        private val USER_ID_KEY = stringPreferencesKey("userId")
+        private val USER_TYPE_KEY = stringPreferencesKey("userType")
+    }
 
-    fun saveLoginState(userId: String, userType: String) {
-        sharedPreferences.edit {
-            putBoolean("isLoggedIn", true)
-            putString("userId", userId)
-            putString("userType", userType)
+    private val Context.dataStore by preferencesDataStore(name = "plugpoint_user_prefs")
+    private val dataStore = context.dataStore
+
+    suspend fun saveLoginState(userId: String, userType: String) {
+        dataStore.edit { prefs ->
+            prefs[IS_LOGGED_IN_KEY] = true
+            prefs[USER_ID_KEY] = userId
+            prefs[USER_TYPE_KEY] = userType
         }
     }
 
-    fun clearLoginState() {
-        sharedPreferences.edit {
-            remove("isLoggedIn")
-            remove("userId")
-            remove("userType")
+    suspend fun clearLoginState() {
+        dataStore.edit { prefs ->
+            prefs.remove(IS_LOGGED_IN_KEY)
+            prefs.remove(USER_ID_KEY)
+            prefs.remove(USER_TYPE_KEY)
         }
     }
 
-    fun isUserLoggedIn(): Boolean {
-        return sharedPreferences.getBoolean("isLoggedIn", false)
-    }
+    fun isUserLoggedInFlow(): Flow<Boolean> =
+        dataStore.data.map { it[IS_LOGGED_IN_KEY] ?: false }
+    suspend fun isUserLoggedIn(): Boolean =
+        dataStore.data.map { it[IS_LOGGED_IN_KEY] ?: false }.first()
 
-    fun getLoggedInUserId(): String? {
-        return sharedPreferences.getString("userId", null)
-    }
+    fun getLoggedInUserIdFlow(): Flow<String?> =
+        dataStore.data.map { it[USER_ID_KEY] }
+    suspend fun getLoggedInUserId(): String? =
+        dataStore.data.map { it[USER_ID_KEY] }.first()
+
+    fun getLoggedInUserTypeFlow(): Flow<String?> =
+        dataStore.data.map { it[USER_TYPE_KEY] }
+    suspend fun getLoggedInUserType(): String? =
+        dataStore.data.map { it[USER_TYPE_KEY] }.first()
+
+    // Removed non-suspend isUserLoggedIn() and getLoggedInUserId(). Use suspend or Flow-based versions instead.
+
 
     fun logoutUser(onNavigateToLogin: () -> Unit) {
         viewModelScope.launch {
@@ -136,14 +158,16 @@ class AuthViewModel(
         val collection = if (userType == "supplier") FirestoreCollections.SUPPLIERS else FirestoreCollections.CONSUMERS
         firestore.collection(collection).document(uid).set(formData)
             .addOnSuccessListener {
-                saveLoginState(uid, userType)
-                _registrationState.value = RegistrationState.Success(userType)
-                val profileRoute = if (userType == "supplier") {
-                    "$ROUTE_PROFILE_SUPPLIER/$uid"
-                } else {
-                    "$ROUTE_PROFILE_CONSUMER/$uid"
-                }
-                onNavigateToProfile(profileRoute)
+                viewModelScope.launch {
+    saveLoginState(uid, userType)
+    _registrationState.value = RegistrationState.Success(userType)
+    val profileRoute = if (userType == "supplier") {
+        "$ROUTE_PROFILE_SUPPLIER/$uid"
+    } else {
+        "$ROUTE_PROFILE_CONSUMER/$uid"
+    }
+    onNavigateToProfile(profileRoute)
+}
             }
             .addOnFailureListener { exception ->
                 _registrationState.value = RegistrationState.Failure(exception.message ?: "An unknown error occurred.")
@@ -169,16 +193,20 @@ class AuthViewModel(
                     firestore.collection(FirestoreCollections.SUPPLIERS).document(uid).get()
                         .addOnSuccessListener { supplierDoc ->
                             if (supplierDoc.exists()) {
-                                saveLoginState(uid, "supplier")
-                                fetchProfileDetails(uid, "supplier")
-                                onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$uid")
+                                viewModelScope.launch {
+    saveLoginState(uid, "supplier")
+    fetchProfileDetails(uid, "supplier")
+    onNavigateToProfile("$ROUTE_PROFILE_SUPPLIER/$uid")
+}
                             } else {
                                 firestore.collection(FirestoreCollections.CONSUMERS).document(uid).get()
                                     .addOnSuccessListener { consumerDoc ->
                                         if (consumerDoc.exists()) {
-                                            saveLoginState(uid, "consumer")
-                                            fetchProfileDetails(uid, "consumer")
-                                            onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$uid")
+                                            viewModelScope.launch {
+    saveLoginState(uid, "consumer")
+    fetchProfileDetails(uid, "consumer")
+    onNavigateToProfile("$ROUTE_PROFILE_CONSUMER/$uid")
+}
                                         } else {
                                             onLoginError("User profile not found.")
                                         }

@@ -1,5 +1,6 @@
 package com.PlugPoint.plugpoint
 
+import kotlinx.coroutines.runBlocking
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -38,7 +39,7 @@ class MainActivity : ComponentActivity() {
             .baseUrl("https://api.imgur.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-        val sharedPreferences = getSharedPreferences("PlugPointPrefs", MODE_PRIVATE)
+    
         val imgurAPI = retrofit.create(ImgurAPI::class.java)
         // Use the custom factory to create the DarkModeViewModel
         val darkModeViewModel = ViewModelProvider(
@@ -46,7 +47,8 @@ class MainActivity : ComponentActivity() {
             DarkModeViewModelFactory(applicationContext)
         ).get(DarkModeViewModel::class.java)
 
-        val userType = sharedPreferences.getString("userType", null)
+        val sharedPreferences = getSharedPreferences("plugpoint_user_prefs", MODE_PRIVATE)
+val userType = sharedPreferences.getString("userType", null)
 
         setContent {
             val isDarkModeEnabled by darkModeViewModel.isDarkModeEnabled.collectAsState()
@@ -58,8 +60,13 @@ class MainActivity : ComponentActivity() {
 //                val isUserLoggedIn = authViewModel.isUserLoggedIn()
 //                val userId = authViewModel.getLoggedInUserId()
 
-                val isUserLoggedIn = authViewModel.isUserLoggedIn()
-                val userId = authViewModel.getLoggedInUserId()
+                
+var isUserLoggedIn = false
+var userId: String? = null
+runBlocking {
+    isUserLoggedIn = authViewModel.isUserLoggedIn()
+    userId = authViewModel.getLoggedInUserId()
+}
 
                 val startDestination = if (isUserLoggedIn && userId != null && userType != null) {
                     if (userType == "supplier") {

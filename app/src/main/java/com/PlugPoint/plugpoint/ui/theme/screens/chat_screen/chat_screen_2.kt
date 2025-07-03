@@ -1,5 +1,7 @@
 package com.PlugPoint.plugpoint.ui.theme.screens.chat_screen
 
+import androidx.compose.runtime.*
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,40 +26,43 @@ fun ChatScreen2(
     userId: String
 ) {
     val messages by chatViewModel.messages.collectAsState()
-    val userIdCurrent = authViewModel.getLoggedInUserId()
-    var messageText by remember { mutableStateOf("") }
+    var userIdCurrent by remember { mutableStateOf<String?>(null) }
+LaunchedEffect(Unit) {
+    userIdCurrent = authViewModel.getLoggedInUserId()
+}
+var messageText by remember { mutableStateOf("") }
 
-    // Find or create conversation ID
-    LaunchedEffect(userId) {
-        if (userIdCurrent == null) return@LaunchedEffect // Skip if not logged in
-        val participants = listOf(userIdCurrent, userId).sorted() // Built-in sorted()
-        val conversationQuery = FirebaseFirestore.getInstance()
+// Find or create conversation ID
+LaunchedEffect(userId, userIdCurrent) {
+    if (userIdCurrent == null) return@LaunchedEffect // Skip if not logged in
+    val participants = listOf(userIdCurrent!!, userId).sorted() // Built-in sorted()
+    val conversationQuery = FirebaseFirestore.getInstance()
+        .collection("conversations")
+        .whereEqualTo("participants", participants)
+        .get()
+        .await()
+    val conversationId = if (conversationQuery.isEmpty) {
+        val newConversation = hashMapOf(
+            "participants" to participants,
+            "lastMessage" to "",
+            "lastMessageTime" to 0L,
+            "lastMessageSenderId" to ""
+        )
+        val docRef = FirebaseFirestore.getInstance()
             .collection("conversations")
-            .whereEqualTo("participants", participants)
-            .get()
+            .add(newConversation)
             .await()
-        val conversationId = if (conversationQuery.isEmpty) {
-            val newConversation = hashMapOf(
-                "participants" to participants,
-                "lastMessage" to "",
-                "lastMessageTime" to 0L,
-                "lastMessageSenderId" to ""
-            )
-            val docRef = FirebaseFirestore.getInstance()
-                .collection("conversations")
-                .add(newConversation)
-                .await()
-            docRef.id
-        } else {
-            conversationQuery.documents.first().id
-        }
-        chatViewModel.listenForMessages(conversationId)
+        docRef.id
+    } else {
+        conversationQuery.documents.first().id
     }
+    chatViewModel.listenForMessages(conversationId)
+}
 
-    if (userIdCurrent == null) {
-        Text(
-            text = "You must be logged in to send messages.",
-            modifier = Modifier
+if (userIdCurrent == null) {
+    Text(
+        text = "You must be logged in to send messages.",
+        modifier = Modifier
                 .fillMaxSize()
                 .wrapContentSize(Alignment.Center),
             fontSize = 18.sp,
